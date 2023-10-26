@@ -36,7 +36,7 @@ First, [build Elements Core for testing](https://github.com/uncomputable/asset-g
 Then run the unit test assets using the test runner.
 
 ```bash
-DIR_UNIT_TEST_DATA=../asset-gen ./src/test/test_bitcoin --log_level=warning --run_test=script_test
+DIR_UNIT_TEST_DATA=../asset-gen ./src/test/test_bitcoin --log_level=warning --run_test=script_tests
 ```
 
 The variable `DIR_UNIT_TEST_DATA` selects the directory in which the file `script_assets_test.json` is located.
