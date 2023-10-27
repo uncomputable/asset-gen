@@ -1,20 +1,15 @@
 mod json;
+mod util;
 
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::sync::Arc;
 
-use elements::secp256k1_zkp;
 use elements_miniscript as miniscript;
-use miniscript::{bitcoin, elements};
+use miniscript::elements;
 
 use crate::json::{Flag, Parameters, Serde, TestCase};
-
-const UNSPENDABLE_PUBLIC_KEY: [u8; 32] = [
-    0x50, 0x92, 0x9b, 0x74, 0xc1, 0xa0, 0x49, 0x54, 0xb7, 0x8b, 0x4b, 0x60, 0x35, 0xe9, 0x7a, 0x5e,
-    0x07, 0x8a, 0x5a, 0x0f, 0x28, 0xec, 0x96, 0xd5, 0x47, 0xbf, 0xee, 0x9a, 0xce, 0x80, 0x3a, 0xc0,
-];
 
 fn test_case(
     comment: &'static str,
@@ -22,16 +17,17 @@ fn test_case(
     commit: simplicity::Cmr,
     success: bool,
 ) -> TestCase {
-    let spend_info = get_spend_info(commit);
-    let control_block = get_control_block(commit, &spend_info);
+    let spend_info = util::get_spend_info(commit, simplicity::leaf_version());
+    let control_block =
+        util::get_control_block(commit, simplicity::leaf_version(), &spend_info).expect("const");
 
     let funding_tx = get_funding_tx(&spend_info);
     let spending_tx = get_spending_tx(&funding_tx);
 
-    let parameters = Parameters::taproot(program_bytes, to_script(commit), control_block);
+    let parameters = Parameters::taproot(program_bytes, util::to_script(commit), control_block);
     let (success, failure) = match success {
         true => (Some(parameters), None),
-        false => (None, Some(parameters))
+        false => (None, Some(parameters)),
     };
 
     TestCase {
@@ -80,7 +76,7 @@ fn get_funding_tx(spend_info: &elements::taproot::TaprootSpendInfo) -> elements:
         asset: elements::confidential::Asset::Null,
         value: elements::confidential::Value::Null,
         nonce: elements::confidential::Nonce::Null,
-        script_pubkey: get_script_pubkey(spend_info),
+        script_pubkey: util::get_script_pubkey(spend_info),
         // The witness is overwritten by script_tests.cpp based on the success / failure parameters
         witness: elements::TxOutWitness::default(),
     };
@@ -92,11 +88,9 @@ fn get_funding_tx(spend_info: &elements::taproot::TaprootSpendInfo) -> elements:
     }
 }
 
-fn get_spending_tx(
-    funding_tx: &elements::Transaction,
-) -> elements::Transaction {
+fn get_spending_tx(funding_tx: &elements::Transaction) -> elements::Transaction {
     let input = elements::TxIn {
-        previous_output: to_outpoint(funding_tx),
+        previous_output: util::to_outpoint(funding_tx),
         is_pegin: false,
         script_sig: elements::Script::new(),
         sequence: elements::Sequence::MAX,
@@ -110,48 +104,6 @@ fn get_spending_tx(
         input: vec![input],
         output: vec![dummy],
     }
-}
-
-fn to_outpoint(prevout: &elements::Transaction) -> elements::OutPoint {
-    elements::OutPoint {
-        txid: prevout.txid(),
-        vout: 0,
-    }
-}
-
-fn to_script(commit: simplicity::Cmr) -> elements::Script {
-    elements::Script::from(commit.as_ref().to_vec())
-}
-
-fn unspendable_key() -> bitcoin::key::XOnlyPublicKey {
-    bitcoin::key::XOnlyPublicKey::from_slice(&UNSPENDABLE_PUBLIC_KEY).expect("const")
-}
-
-fn get_spend_info(commit: simplicity::Cmr) -> elements::taproot::TaprootSpendInfo {
-    let script = to_script(commit);
-    elements::taproot::TaprootBuilder::new()
-        .add_leaf_with_ver(0, script, simplicity::leaf_version())
-        .expect("const")
-        .finalize(secp256k1_zkp::SECP256K1, unspendable_key())
-        .expect("const")
-}
-
-fn get_script_pubkey(spend_info: &elements::taproot::TaprootSpendInfo) -> elements::Script {
-    let output_key = spend_info.output_key();
-    let builder = elements::script::Builder::new();
-    builder
-        .push_opcode(elements::opcodes::all::OP_PUSHNUM_1)
-        .push_slice(&output_key.as_inner().serialize())
-        .into_script()
-}
-
-fn get_control_block(
-    commit: simplicity::Cmr,
-    spend_info: &elements::taproot::TaprootSpendInfo,
-) -> elements::taproot::ControlBlock {
-    let script = to_script(commit);
-    let script_ver = (script, simplicity::leaf_version());
-    spend_info.control_block(&script_ver).expect("const")
 }
 
 fn main() {
