@@ -66,7 +66,7 @@ fn test_case_string(
         .finalize()
         .expect("finalize");
     let program_bytes = program.encode_to_vec();
-    dbg!(&program_bytes);
+    dbg!(&program_bytes, program_bytes.len());
     test_case(comment, program_bytes, program.cmr(), success)
 }
 
@@ -120,28 +120,28 @@ fn main() {
     ));
 
     /* The untyped Simplicity term (case (drop iden) iden) ought to cause an occurs check failure. */
-    /*let program_bytes = vec![0xc1, 0x07, 0x20, 0x30];
+    let program_bytes = vec![0xc1, 0x07, 0x20, 0x30];
     let commit = simplicity::Cmr::case(
         simplicity::Cmr::drop(simplicity::Cmr::iden()),
         simplicity::Cmr::iden(),
     );
-    test_cases.push(test_case("type/occurs_check_failure", program_bytes, commit, false));*/
+    test_cases.push(test_case("type/occurs_check_failure", program_bytes, commit, false));
 
     /* Unit program with incomplete witness of size 2^31. */
-    /*let program_bytes = vec![0x27, 0xe1, 0xe0, 0x00, 0x00, 0x00, 0x00];
+    let program_bytes = vec![0x27, 0xe1, 0xe0, 0x00, 0x00, 0x00, 0x00];
     test_cases.push(test_case_bytes(
         "witness/value_out_of_range",
         program_bytes,
         false,
-    ));*/
+    ));
 
     /* Unit program with incomplete witness of size 2^31-1. */
-    /*let program_bytes = vec![0x27, 0xe1, 0xdf, 0xff, 0xff, 0xff, 0xff];
+    let program_bytes = vec![0x27, 0xe1, 0xdf, 0xff, 0xff, 0xff, 0xff];
     test_cases.push(test_case_bytes(
         "witness/unexpected_end_of_bitstream",
         program_bytes,
         false,
-    ));*/
+    ));
 
     /* word("2^23 zero bits") ; unit */
     // FIXME: How to compute CMR without waiting forever?
@@ -158,7 +158,8 @@ fn main() {
 
     /* iden composed with itself 2^23 times. */
     // FIXME: Bytes of program below are different from bytes hardcoded in C repo
-    /*let s = "
+    // FIXME: Add padding to make increase budget to 1677721500 mWU
+    let _s = "
         id0 := iden
         cp0 := comp id0 id0
         cp1 := comp cp0 cp0
@@ -189,9 +190,9 @@ fn main() {
     program_bytes[0] = 0xe1;
     program_bytes[1] = 0x08;
     program_bytes[33] = 0x40;
-    dbg!(&program_bytes);
+    dbg!(&program_bytes, program_bytes.len());
 
-    test_cases.push(test_case_string("cost/large_program_within_budget", s, &empty_witness, true));*/
+    test_cases.push(test_case_bytes("cost/large_program_within_budget", program_bytes, false));
 
     let s = serde_json::to_string(&test_cases).expect("serialize");
 
