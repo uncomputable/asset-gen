@@ -25,6 +25,7 @@ pub enum Flag {
     CheckSequenceVerify,
     Witness,
     Taproot,
+    Simplicity,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
@@ -64,7 +65,7 @@ impl Parameters {
 }
 
 impl Flag {
-    pub const fn all_flags() -> [Self; 7] {
+    pub const fn all_flags() -> [Self; 8] {
         [
             Flag::P2SH,
             Flag::DerSig,
@@ -73,6 +74,7 @@ impl Flag {
             Flag::CheckSequenceVerify,
             Flag::Witness,
             Flag::Taproot,
+            Flag::Simplicity,
         ]
     }
 }
@@ -87,6 +89,7 @@ impl fmt::Display for Flag {
             Flag::CheckSequenceVerify => f.write_str("CHECKSEQUENCEVERIFY"),
             Flag::Witness => f.write_str("WITNESS"),
             Flag::Taproot => f.write_str("TAPROOT"),
+            Flag::Simplicity => f.write_str("SIMPLICITY"),
         }
     }
 }
@@ -103,6 +106,7 @@ impl FromStr for Flag {
             "CHECKSEQUENCEVERIFY" => Ok(Flag::CheckSequenceVerify),
             "WITNESS" => Ok(Flag::Witness),
             "TAPROOT" => Ok(Flag::Taproot),
+            "SIMPLICITY" => Ok(Flag::Simplicity),
             _ => Err("unknown flag"),
         }
     }
