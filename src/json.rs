@@ -46,6 +46,23 @@ pub struct TestCase {
     pub is_final: bool,
 }
 
+impl Parameters {
+    pub fn taproot(
+        script_input: Vec<u8>,
+        script: elements::Script,
+        control_block: elements::taproot::ControlBlock,
+    ) -> Self {
+        Self {
+            script_sig: elements::Script::new(),
+            witness: vec![
+                Serde(script_input),
+                Serde(script.into_bytes()),
+                Serde(control_block.serialize()),
+            ],
+        }
+    }
+}
+
 impl Flag {
     pub const fn all_flags() -> [Self; 7] {
         [

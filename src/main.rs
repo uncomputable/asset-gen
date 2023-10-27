@@ -23,8 +23,16 @@ fn test_case(
     success: bool,
 ) -> TestCase {
     let spend_info = get_spend_info(commit);
+    let control_block = get_control_block(commit, &spend_info);
+
     let funding_tx = get_funding_tx(&spend_info);
-    let spending_tx = get_spending_tx(&funding_tx, program_bytes, commit, &spend_info);
+    let spending_tx = get_spending_tx(&funding_tx);
+
+    let parameters = Parameters::taproot(program_bytes, to_script(commit), control_block);
+    let (success, failure) = match success {
+        true => (Some(parameters), None),
+        false => (None, Some(parameters))
+    };
 
     TestCase {
         tx: Serde(spending_tx),
@@ -33,8 +41,8 @@ fn test_case(
         flags: Flag::all_flags().to_vec(),
         comment: comment.to_string(),
         hash_genesis_block: None,
-        success: success.then(Parameters::default),
-        failure: (!success).then(Parameters::default),
+        success,
+        failure,
         is_final: false,
     }
 }
@@ -73,6 +81,7 @@ fn get_funding_tx(spend_info: &elements::taproot::TaprootSpendInfo) -> elements:
         value: elements::confidential::Value::Null,
         nonce: elements::confidential::Nonce::Null,
         script_pubkey: get_script_pubkey(spend_info),
+        // The witness is overwritten by script_tests.cpp based on the success / failure parameters
         witness: elements::TxOutWitness::default(),
     };
     elements::Transaction {
@@ -85,27 +94,14 @@ fn get_funding_tx(spend_info: &elements::taproot::TaprootSpendInfo) -> elements:
 
 fn get_spending_tx(
     funding_tx: &elements::Transaction,
-    program_bytes: Vec<u8>,
-    commit: simplicity::Cmr,
-    spend_info: &elements::taproot::TaprootSpendInfo,
 ) -> elements::Transaction {
-    let witness = elements::TxInWitness {
-        amount_rangeproof: None,
-        inflation_keys_rangeproof: None,
-        script_witness: vec![
-            program_bytes,
-            to_script(commit).into_bytes(),
-            get_control_block(commit, spend_info).serialize(),
-        ],
-        pegin_witness: vec![],
-    };
     let input = elements::TxIn {
         previous_output: to_outpoint(funding_tx),
         is_pegin: false,
         script_sig: elements::Script::new(),
         sequence: elements::Sequence::MAX,
         asset_issuance: elements::AssetIssuance::default(),
-        witness,
+        witness: elements::TxInWitness::default(),
     };
     let dummy = elements::TxOut::default();
     elements::Transaction {
