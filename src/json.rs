@@ -117,6 +117,8 @@ pub struct Parameters {
     #[serde(rename = "scriptSig")]
     pub script_sig: elements::Script,
     pub witness: Vec<Serde<Vec<u8>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<ScriptError>,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -346,6 +348,7 @@ impl Parameters {
         script_input: Vec<u8>,
         script: elements::Script,
         control_block: elements::taproot::ControlBlock,
+        error: Option<ScriptError>,
     ) -> Self {
         Self {
             script_sig: elements::Script::new(),
@@ -354,6 +357,7 @@ impl Parameters {
                 Serde(script.into_bytes()),
                 Serde(control_block.serialize()),
             ],
+            error,
         }
     }
 }
@@ -490,6 +494,7 @@ mod tests {
         let parameters = Parameters {
             script_sig: elements::Script::from(vec![0xca, 0xfe, 0xba, 0xbe]),
             witness: vec![Serde(vec![0xde, 0xad, 0xbe, 0xef])],
+            error: None,
         };
         let mut test_case = TestCase {
             tx: Serde(tx.clone()),

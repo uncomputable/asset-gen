@@ -9,13 +9,13 @@ use std::sync::Arc;
 use elements_miniscript as miniscript;
 use miniscript::elements;
 
-use crate::json::{Flag, Parameters, Serde, TestCase};
+use crate::json::{Flag, Parameters, ScriptError, Serde, TestCase};
 
 fn test_case(
     comment: &'static str,
     program_bytes: Vec<u8>,
     commit: simplicity::Cmr,
-    success: bool,
+    error: Option<ScriptError>,
 ) -> TestCase {
     let spend_info = util::get_spend_info(commit, simplicity::leaf_version());
     let control_block =
@@ -24,10 +24,11 @@ fn test_case(
     let funding_tx = get_funding_tx(&spend_info);
     let spending_tx = get_spending_tx(&funding_tx);
 
-    let parameters = Parameters::taproot(program_bytes, util::to_script(commit), control_block);
-    let (success, failure) = match success {
-        true => (Some(parameters), None),
-        false => (None, Some(parameters)),
+    let parameters =
+        Parameters::taproot(program_bytes, util::to_script(commit), control_block, error);
+    let (success, failure) = match error {
+        None => (Some(parameters), None),
+        Some(_) => (None, Some(parameters)),
     };
 
     TestCase {
@@ -43,20 +44,24 @@ fn test_case(
     }
 }
 
-fn test_case_bytes(comment: &'static str, program_bytes: Vec<u8>, success: bool) -> TestCase {
+fn test_case_bytes(
+    comment: &'static str,
+    program_bytes: Vec<u8>,
+    error: Option<ScriptError>,
+) -> TestCase {
     let mut bits = simplicity::BitIter::new(program_bytes.iter().copied());
     let program =
         simplicity::CommitNode::<simplicity::jet::Core>::decode(&mut bits).expect("const");
     let commit = program.cmr();
 
-    test_case(comment, program_bytes, commit, success)
+    test_case(comment, program_bytes, commit, error)
 }
 
 fn test_case_string(
     comment: &'static str,
     s: &str,
     witness: &HashMap<Arc<str>, Arc<simplicity::Value>>,
-    success: bool,
+    error: Option<ScriptError>,
 ) -> TestCase {
     let forest =
         simplicity::human_encoding::Forest::<simplicity::jet::Core>::parse(s).expect("parse");
@@ -67,7 +72,7 @@ fn test_case_string(
         .expect("finalize");
     let program_bytes = program.encode_to_vec();
     dbg!(&program_bytes, program_bytes.len());
-    test_case(comment, program_bytes, program.cmr(), success)
+    test_case(comment, program_bytes, program.cmr(), error)
 }
 
 fn get_funding_tx(spend_info: &elements::taproot::TaprootSpendInfo) -> elements::Transaction {
@@ -116,7 +121,7 @@ fn main() {
         "unit_empty_witness",
         s,
         &empty_witness,
-        true,
+        None,
     ));
 
     /* The untyped Simplicity term (case (drop iden) iden) ought to cause an occurs check failure. */
@@ -125,14 +130,19 @@ fn main() {
         simplicity::Cmr::drop(simplicity::Cmr::iden()),
         simplicity::Cmr::iden(),
     );
-    test_cases.push(test_case("type/occurs_check_failure", program_bytes, commit, false));
+    test_cases.push(test_case(
+        "type/occurs_check_failure",
+        program_bytes,
+        commit,
+        Some(ScriptError::SimplicityTypeInferenceOccursCheck),
+    ));
 
     /* Unit program with incomplete witness of size 2^31. */
     let program_bytes = vec![0x27, 0xe1, 0xe0, 0x00, 0x00, 0x00, 0x00];
     test_cases.push(test_case_bytes(
         "witness/value_out_of_range",
         program_bytes,
-        false,
+        Some(ScriptError::SimplicityDataOutOfRange),
     ));
 
     /* Unit program with incomplete witness of size 2^31-1. */
@@ -140,7 +150,7 @@ fn main() {
     test_cases.push(test_case_bytes(
         "witness/unexpected_end_of_bitstream",
         program_bytes,
-        false,
+        Some(ScriptError::SimplicityBitstreamEof),
     ));
 
     /* word("2^23 zero bits") ; unit */
@@ -153,7 +163,7 @@ fn main() {
     program_bytes[len - 2] = 0x48;
     program_bytes[len - 1] = 0x20;
 
-    test_cases.push(test_case_cmr("witness/memory_exceeds_limit", program_bytes, false));
+    test_cases.push(test_case_cmr("witness/memory_exceeds_limit", program_bytes, Some(ScriptError::SimplicityExecMemory));
     */
 
     /* iden composed with itself 2^23 times. */
@@ -192,7 +202,11 @@ fn main() {
     program_bytes[33] = 0x40;
     dbg!(&program_bytes, program_bytes.len());
 
-    test_cases.push(test_case_bytes("cost/large_program_within_budget", program_bytes, false));
+    test_cases.push(test_case_bytes(
+        "cost/large_program_within_budget",
+        program_bytes,
+        Some(ScriptError::SimplicityExecBudget),
+    ));
 
     let s = serde_json::to_string(&test_cases).expect("serialize");
 
