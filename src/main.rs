@@ -169,7 +169,7 @@ fn main() {
     /* iden composed with itself 2^23 times. */
     // FIXME: Bytes of program below are different from bytes hardcoded in C repo
     // FIXME: Add padding to make increase budget to 1677721500 mWU
-    let _s = "
+    let s = "
         id0 := iden
         cp0 := comp id0 id0
         cp1 := comp cp0 cp0
@@ -195,6 +195,12 @@ fn main() {
         cp21 := comp cp20 cp20
         main := comp cp21 cp21
     ";
+    test_cases.push(test_case_string(
+        "cost/program_exceeds_budget",
+        s,
+        &empty_witness,
+        Some(ScriptError::SimplicityExecBudget),
+    ));
 
     let mut program_bytes = vec![0u8; 35];
     program_bytes[0] = 0xe1;
@@ -203,9 +209,9 @@ fn main() {
     dbg!(&program_bytes, program_bytes.len());
 
     test_cases.push(test_case_bytes(
-        "cost/large_program_within_budget",
+        "program/program_includes_unused_bytes",
         program_bytes,
-        Some(ScriptError::SimplicityExecBudget),
+        Some(ScriptError::SimplicityBitstreamUnusedBytes),
     ));
 
     let s = serde_json::to_string(&test_cases).expect("serialize");
