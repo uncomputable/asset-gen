@@ -4,7 +4,7 @@ use std::str::FromStr;
 use elements::hex::{FromHex, ToHex};
 use elements_miniscript as miniscript;
 use miniscript::elements;
-use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{de::Error as _, Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Serde<A>(pub A);
@@ -154,7 +154,7 @@ where
     s.split(',')
         .map(Flag::from_str)
         .collect::<Result<Vec<_>, _>>()
-        .map_err(Error::custom)
+        .map_err(D::Error::custom)
 }
 
 #[cfg(test)]
