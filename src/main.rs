@@ -6,6 +6,7 @@ use std::fs::File;
 use std::io::Write;
 use std::sync::Arc;
 
+use elements::hex::ToHex;
 use elements_miniscript as miniscript;
 use miniscript::elements;
 
@@ -71,7 +72,7 @@ fn test_case_string(
         .finalize()
         .expect("finalize");
     let program_bytes = program.encode_to_vec();
-    dbg!(&program_bytes, program_bytes.len());
+    dbg!(&program_bytes.to_hex(), program_bytes.len());
     test_case(comment, program_bytes, program.cmr(), error)
 }
 
@@ -206,7 +207,7 @@ fn main() {
     program_bytes[0] = 0xe1;
     program_bytes[1] = 0x08;
     program_bytes[33] = 0x40;
-    dbg!(&program_bytes, program_bytes.len());
+    dbg!(&program_bytes.to_hex(), program_bytes.len());
 
     test_cases.push(test_case_bytes(
         "program/program_includes_unused_bytes",
