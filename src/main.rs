@@ -174,7 +174,6 @@ fn main() {
     ));
 
     /* iden composed with itself 2^23 times. */
-    // FIXME: Bytes of program below are different from bytes hardcoded in C repo
     // FIXME: Add padding to make increase budget to 1677721500 mWU
     let s = "
         id0 := iden
