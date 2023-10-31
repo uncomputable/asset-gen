@@ -155,17 +155,23 @@ fn main() {
     ));
 
     /* word("2^23 zero bits") ; unit */
-    // FIXME: How to compute CMR without waiting forever?
-    /*
     let len = (1 << 20) + 4;
     let mut program_bytes = vec![0u8; len];
     program_bytes[0] = 0xb7;
     program_bytes[1] = 0x08;
     program_bytes[len - 2] = 0x48;
     program_bytes[len - 1] = 0x20;
-
-    test_cases.push(test_case_cmr("witness/memory_exceeds_limit", program_bytes, Some(ScriptError::SimplicityExecMemory));
-    */
+    let commit = simplicity::Cmr::from_byte_array([
+        0x7f, 0x81, 0xc0, 0x76, 0xf0, 0xdf, 0x95, 0x05, 0xbf, 0xce, 0x61, 0xf0, 0x41, 0x19, 0x7b,
+        0xd9, 0x2a, 0xaa, 0xa4, 0xf1, 0x70, 0x15, 0xd1, 0xec, 0xb2, 0x48, 0xdd, 0xff, 0xe9, 0xd9,
+        0xda, 0x07,
+    ]);
+    test_cases.push(test_case(
+        "cost/memory_exceeds_limit",
+        program_bytes,
+        commit,
+        Some(ScriptError::SimplicityExecMemory),
+    ));
 
     /* iden composed with itself 2^23 times. */
     // FIXME: Bytes of program below are different from bytes hardcoded in C repo
