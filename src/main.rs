@@ -68,7 +68,6 @@ fn test_case_string(
         simplicity::human_encoding::Forest::<simplicity::jet::Core>::parse(s).expect("parse");
     let program = forest
         .to_witness_node(witness)
-        .expect("witness")
         .finalize()
         .expect("finalize");
     let program_bytes = program.encode_to_vec();
