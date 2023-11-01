@@ -74,3 +74,11 @@ pub fn get_control_block<A: AsRef<[u8]>>(
     let script_ver = (script, version);
     spend_info.control_block(&script_ver)
 }
+
+pub fn get_witness_stack(
+    script_input: Vec<u8>,
+    script: elements::Script,
+    control_block: elements::taproot::ControlBlock,
+) -> Vec<Vec<u8>> {
+    vec![script_input, script.into_bytes(), control_block.serialize()]
+}

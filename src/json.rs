@@ -344,19 +344,10 @@ impl FromStr for ScriptError {
 }
 
 impl Parameters {
-    pub fn taproot(
-        script_input: Vec<u8>,
-        script: elements::Script,
-        control_block: elements::taproot::ControlBlock,
-        error: Option<ScriptError>,
-    ) -> Self {
+    pub fn taproot(witness: Vec<Vec<u8>>, error: Option<ScriptError>) -> Self {
         Self {
             script_sig: elements::Script::new(),
-            witness: vec![
-                Serde(script_input),
-                Serde(script.into_bytes()),
-                Serde(control_block.serialize()),
-            ],
+            witness: witness.into_iter().map(Serde).collect(),
             error,
         }
     }

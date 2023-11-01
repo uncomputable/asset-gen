@@ -25,8 +25,10 @@ fn test_case(
     let funding_tx = get_funding_tx(&spend_info);
     let spending_tx = get_spending_tx(&funding_tx);
 
-    let parameters =
-        Parameters::taproot(program_bytes, util::to_script(commit), control_block, error);
+    let mut witness =
+        util::get_witness_stack(program_bytes, util::to_script(commit), control_block);
+
+    let parameters = Parameters::taproot(witness, error);
     let (success, failure) = match error {
         None => (Some(parameters), None),
         Some(_) => (None, Some(parameters)),
