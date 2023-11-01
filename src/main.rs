@@ -16,6 +16,7 @@ fn test_case(
     comment: &'static str,
     program_bytes: Vec<u8>,
     commit: simplicity::Cmr,
+    cost: Option<simplicity::Cost>,
     error: Option<ScriptError>,
 ) -> TestCase {
     let spend_info = util::get_spend_info(commit, simplicity::leaf_version());
@@ -27,6 +28,13 @@ fn test_case(
 
     let mut witness =
         util::get_witness_stack(program_bytes, util::to_script(commit), control_block);
+
+    if let Some(cost) = cost {
+        if let Some(annex) = cost.get_padding(&witness) {
+            dbg!(annex.len());
+            witness.push(annex);
+        }
+    }
 
     let parameters = Parameters::taproot(witness, error);
     let (success, failure) = match error {
@@ -57,7 +65,7 @@ fn test_case_bytes(
         simplicity::CommitNode::<simplicity::jet::Core>::decode(&mut bits).expect("const");
     let commit = program.cmr();
 
-    test_case(comment, program_bytes, commit, error)
+    test_case(comment, program_bytes, commit, None, error)
 }
 
 fn test_case_string(
@@ -74,7 +82,13 @@ fn test_case_string(
         .expect("finalize");
     let program_bytes = program.encode_to_vec();
     dbg!(&program_bytes.to_hex(), program_bytes.len());
-    test_case(comment, program_bytes, program.cmr(), error)
+    test_case(
+        comment,
+        program_bytes,
+        program.cmr(),
+        Some(program.bounds().cost),
+        error,
+    )
 }
 
 fn get_funding_tx(spend_info: &elements::taproot::TaprootSpendInfo) -> elements::Transaction {
@@ -136,6 +150,7 @@ fn main() {
         "type/occurs_check_failure",
         program_bytes,
         commit,
+        None,
         Some(ScriptError::SimplicityTypeInferenceOccursCheck),
     ));
 
@@ -171,11 +186,11 @@ fn main() {
         "cost/memory_exceeds_limit",
         program_bytes,
         commit,
+        None,
         Some(ScriptError::SimplicityExecMemory),
     ));
 
     /* iden composed with itself 2^23 times. */
-    // FIXME: Add padding to make increase budget to 1677721500 mWU
     let s = "
         id0 := iden
         cp0 := comp id0 id0
@@ -203,10 +218,10 @@ fn main() {
         main := comp cp21 cp21
     ";
     test_cases.push(test_case_string(
-        "cost/program_exceeds_budget",
+        "cost/large_program_within_budget",
         s,
         &empty_witness,
-        Some(ScriptError::SimplicityExecBudget),
+        None,
     ));
 
     let mut program_bytes = vec![0u8; 35];
