@@ -182,6 +182,30 @@ fn main() {
         0xd9, 0x2a, 0xaa, 0xa4, 0xf1, 0x70, 0x15, 0xd1, 0xec, 0xb2, 0x48, 0xdd, 0xff, 0xe9, 0xd9,
         0xda, 0x07,
     ]);
+
+    /*
+    use simplicity::jet::Core;
+    use simplicity::node::{CoreConstructible};
+    use simplicity::{Value, WitnessNode};
+
+    let mut word = Value::u8(0x00);
+    for _ in 0..20 {
+        word = Value::prod(word.clone(), word.clone());
+    }
+
+    // FIXME: Finalizing this program takes a long time
+    let program = Arc::<WitnessNode<Core>>::comp(
+        &Arc::<WitnessNode<Core>>::const_word(word),
+        &Arc::<WitnessNode<Core>>::unit(),
+    )
+    .expect("const")
+    .finalize()
+    .expect("const");
+
+    assert_eq!(program_bytes, program.encode_to_vec());
+    assert_eq!(commit, program.cmr());
+    */
+
     test_cases.push(test_case(
         "cost/memory_exceeds_limit",
         program_bytes,
