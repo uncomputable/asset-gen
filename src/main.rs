@@ -146,6 +146,26 @@ fn main() {
         simplicity::Cmr::drop(simplicity::Cmr::iden()),
         simplicity::Cmr::iden(),
     );
+
+    /*
+    use simplicity::jet::Core;
+    use simplicity::node::CoreConstructible;
+    use simplicity::WitnessNode;
+
+    // FIXME: Infinite loop in program finalization
+    // https://github.com/BlockstreamResearch/rust-simplicity/issues/177
+    let program = Arc::<WitnessNode<Core>>::case(
+        &Arc::<WitnessNode<Core>>::drop_(&Arc::<WitnessNode<Core>>::iden()),
+        &Arc::<WitnessNode<Core>>::iden(),
+    )
+    .expect("const")
+    .finalize()
+    .expect("const");
+
+    assert_eq!(program_bytes, program.encode_to_vec());
+    assert_eq!(commit, program.cmr());
+    */
+
     test_cases.push(test_case(
         "type/occurs_check_failure",
         program_bytes,
