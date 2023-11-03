@@ -198,11 +198,24 @@ fn main() {
         Some(ScriptError::SimplicityDataOutOfRange),
     ));
 
-    /* Unit program with incomplete witness of size 2^31-1. */
-    let program_bytes = vec![0x27, 0xe1, 0xdf, 0xff, 0xff, 0xff, 0xff];
+    /*
+     * Incomplete witness (fewer bits than declared)
+     */
+    let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
+
+    let mut bytes = Vec::new();
+    let mut bits = simplicity::BitWriter::new(&mut bytes);
+    simplicity::encode::encode_program(&program, &mut bits).unwrap();
+
+    // Manual witness of length 2^31 - 1
+    // The payload of 30 ones is missing, because this is what we are testing
+    bits.write_bit(true).unwrap();
+    simplicity::encode::encode_natural((1 << 31) - 1, &mut bits).unwrap();
+    bits.flush_all().unwrap();
+
     test_cases.push(test_case_bytes(
-        "witness/unexpected_end_of_bitstream",
-        program_bytes,
+        "witness/bitstring_too_short",
+        bytes,
         Some(ScriptError::SimplicityBitstreamEof),
     ));
 
