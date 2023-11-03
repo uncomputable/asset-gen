@@ -134,7 +134,9 @@ fn main() {
     let mut test_cases = Vec::new();
     let empty_witness = HashMap::new();
 
-    /* Unit program with empty witness */
+    /*
+     * `unit` is an ANYONECANSPEND
+     */
     let s = "main := unit";
     test_cases.push(test_case_string(
         "unit_empty_witness",
@@ -143,7 +145,9 @@ fn main() {
         None,
     ));
 
-    /* The untyped Simplicity term (case (drop iden) iden) ought to cause an occurs check failure. */
+    /*
+     * `case (drop iden) iden` fails the occurs check
+     */
     let program_bytes = vec![0xc1, 0x07, 0x20, 0x30];
     let commit = simplicity::Cmr::case(
         simplicity::Cmr::drop(simplicity::Cmr::iden()),
@@ -219,7 +223,10 @@ fn main() {
         Some(ScriptError::SimplicityBitstreamEof),
     ));
 
-    /* word("2^23 zero bits") ; unit */
+    /*
+     * Program exceeds consensus limit on number of cells (memory use):
+     * `word("2^23 zero bits") ; unit`
+     */
     let len = (1 << 20) + 4;
     let mut program_bytes = vec![0u8; len];
     program_bytes[0] = 0xb7;
@@ -263,7 +270,10 @@ fn main() {
         Some(ScriptError::SimplicityExecMemory),
     ));
 
-    /* iden composed with itself 2^23 times. */
+    /*
+     * Large program requires padding:
+     * `iden` composed with itself 2^23 times
+     */
     let s = "
         id0 := iden
         cp0 := comp id0 id0
@@ -297,6 +307,9 @@ fn main() {
         None,
     ));
 
+    /*
+     * Trailing bytes after program encoding (malleability)
+     */
     let mut program_bytes = vec![0u8; 35];
     program_bytes[0] = 0xe1;
     program_bytes[1] = 0x08;
@@ -309,8 +322,10 @@ fn main() {
         Some(ScriptError::SimplicityBitstreamUnusedBytes),
     ));
 
+    /*
+     * Export test cases to JSON
+     */
     let s = serde_json::to_string(&test_cases).expect("serialize");
-
     let mut file = File::create("script_assets_test.json").expect("Unable to create file");
     file.write_all(s.as_bytes()).expect("Unable to write data");
 }
