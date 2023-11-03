@@ -330,6 +330,27 @@ fn main() {
     ));
 
     /*
+     * Illegal padding in final program byte (malleability)
+     */
+    let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
+
+    let mut bytes = Vec::new();
+    let mut bits = simplicity::BitWriter::new(&mut bytes);
+    simplicity::encode::encode_program(&program, &mut bits).unwrap();
+
+    // Manual empty witness
+    bits.write_bit(false).unwrap();
+    // Illegal padding
+    bits.write_bits_be(u64::MAX, 1).unwrap();
+    bits.flush_all().unwrap();
+
+    test_cases.push(test_case_bytes(
+        "program/illegal_padding",
+        bytes,
+        Some(ScriptError::SimplicityBitstreamUnusedBits),
+    ));
+
+    /*
      * Export test cases to JSON
      */
     let s = serde_json::to_string(&test_cases).expect("serialize");
