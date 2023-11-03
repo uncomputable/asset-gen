@@ -9,6 +9,9 @@ use std::sync::Arc;
 use elements::hex::ToHex;
 use elements_miniscript as miniscript;
 use miniscript::elements;
+use simplicity::jet::Core;
+use simplicity::node::CoreConstructible;
+use simplicity::WitnessNode;
 
 use crate::json::{Flag, Parameters, ScriptError, Serde, TestCase};
 
@@ -174,11 +177,24 @@ fn main() {
         Some(ScriptError::SimplicityTypeInferenceOccursCheck),
     ));
 
-    /* Unit program with incomplete witness of size 2^31. */
-    let program_bytes = vec![0x27, 0xe1, 0xe0, 0x00, 0x00, 0x00, 0x00];
+    /*
+     * Too long witness (witness must be shorter than 2^31 bits)
+     */
+    let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
+
+    let mut bytes = Vec::new();
+    let mut bits = simplicity::BitWriter::new(&mut bytes);
+    simplicity::encode::encode_program(&program, &mut bits).unwrap();
+
+    // Manual witness of length 2^31
+    // The decoder will stop at the length declaration, so the payload of 31 zeroes is omitted
+    bits.write_bit(true).unwrap();
+    simplicity::encode::encode_natural(1 << 31, &mut bits).unwrap();
+    bits.flush_all().unwrap();
+
     test_cases.push(test_case_bytes(
-        "witness/value_out_of_range",
-        program_bytes,
+        "witness/bitstring_too_long",
+        bytes,
         Some(ScriptError::SimplicityDataOutOfRange),
     ));
 
