@@ -6,7 +6,6 @@ use std::fs::File;
 use std::io::Write;
 use std::sync::Arc;
 
-use elements::hex::ToHex;
 use elements_miniscript as miniscript;
 use miniscript::elements;
 use simplicity::jet::Core;
@@ -34,7 +33,6 @@ fn test_case(
 
     if let Some(cost) = cost {
         if let Some(annex) = cost.get_padding(&witness) {
-            dbg!(annex.len());
             witness.push(annex);
         }
     }
@@ -84,7 +82,6 @@ fn test_case_string(
         .finalize()
         .expect("finalize");
     let program_bytes = program.encode_to_vec();
-    dbg!(&program_bytes.to_hex(), program_bytes.len());
     test_case(
         comment,
         program_bytes,
@@ -139,7 +136,7 @@ fn main() {
      */
     let s = "main := unit";
     test_cases.push(test_case_string(
-        "unit_empty_witness",
+        "unit_anyonecanspend",
         s,
         &empty_witness,
         None,
@@ -314,7 +311,6 @@ fn main() {
     program_bytes[0] = 0xe1;
     program_bytes[1] = 0x08;
     program_bytes[33] = 0x40;
-    dbg!(&program_bytes.to_hex(), program_bytes.len());
 
     test_cases.push(test_case_bytes(
         "program/program_includes_unused_bytes",
