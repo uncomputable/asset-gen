@@ -318,14 +318,14 @@ fn main() {
     /*
      * Trailing bytes after program encoding (malleability)
      */
-    let mut program_bytes = vec![0u8; 35];
-    program_bytes[0] = 0xe1;
-    program_bytes[1] = 0x08;
-    program_bytes[33] = 0x40;
+    let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
+    let mut bytes = program.encode_to_vec();
+    // Trailing byte
+    bytes.push(0x00);
 
     test_cases.push(test_case_bytes(
-        "program/program_includes_unused_bytes",
-        program_bytes,
+        "program/trailing_bytes",
+        bytes,
         Some(ScriptError::SimplicityBitstreamUnusedBytes),
     ));
 
