@@ -143,6 +143,17 @@ fn main() {
     ));
 
     /*
+     * `iden` is an ANYONECANSPEND
+     */
+    let s = "main := iden";
+    test_cases.push(test_case_string(
+        "iden_anyonecanspend",
+        s,
+        &empty_witness,
+        None,
+    ));
+
+    /*
      * `case (drop iden) iden` fails the occurs check
      */
     let program_bytes = vec![0xc1, 0x07, 0x20, 0x30];
