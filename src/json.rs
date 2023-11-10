@@ -73,8 +73,6 @@ pub enum ScriptError {
     // Constant scriptCode
     OpCodeseparator,
     SigFindanddelete,
-    // Error count
-    ErrorCount,
     // Elements
     Rangeproof,
     PedersenTally,
@@ -209,7 +207,6 @@ impl fmt::Display for ScriptError {
             ScriptError::TapscriptMinimalif => f.write_str("TAPSCRIPT_MINIMALIF"),
             ScriptError::OpCodeseparator => f.write_str("OP_CODESEPARATOR"),
             ScriptError::SigFindanddelete => f.write_str("SIG_FINDANDDELETE"),
-            ScriptError::ErrorCount => f.write_str("ERROR_COUNT"),
             ScriptError::Rangeproof => f.write_str("RANGEPROOF"),
             ScriptError::PedersenTally => f.write_str("PEDERSEN_TALLY"),
             ScriptError::Sha2ContextLoad => f.write_str("SHA2_CONTEXT_LOAD"),
@@ -305,7 +302,6 @@ impl FromStr for ScriptError {
             "TAPSCRIPT_MINIMALIF" => Ok(ScriptError::TapscriptMinimalif),
             "OP_CODESEPARATOR" => Ok(ScriptError::OpCodeseparator),
             "SIG_FINDANDDELETE" => Ok(ScriptError::SigFindanddelete),
-            "ERROR_COUNT" => Ok(ScriptError::ErrorCount),
             "RANGEPROOF" => Ok(ScriptError::Rangeproof),
             "PEDERSEN_TALLY" => Ok(ScriptError::PedersenTally),
             "SHA2_CONTEXT_LOAD" => Ok(ScriptError::Sha2ContextLoad),
