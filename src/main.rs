@@ -76,6 +76,69 @@ fn main() {
     ));
 
     /*
+     * EOF inside program length encoding
+     */
+    let mut bytes = Vec::new();
+    let mut encoder = bit_encoding::Encoder::new(&mut bytes);
+
+    // Final bit missing from program length = 2
+    encoder.bits_be(0b1, 1).unwrap();
+    // The decoder will stop here
+    encoder.finalize().unwrap();
+
+    test_cases.push(TestCase::new(
+        "bitstream_eof/program_length_eof",
+        bytes,
+        Cmr::unit(),
+        None,
+        None,
+        Some(ScriptError::SimplicityBitstreamEof),
+    ));
+
+    /*
+     * EOF inside combinator encoding
+     */
+    let mut bytes = Vec::new();
+    let mut encoder = bit_encoding::Encoder::new(&mut bytes);
+
+    encoder.program_preamble(1).unwrap();
+    // Final bit missing from `unit`
+    encoder.bits_be(0b0100, 4).unwrap();
+    // The decoder will stop here
+    encoder.finalize().unwrap();
+
+    test_cases.push(TestCase::new(
+        "bitstream_eof/combinator_eof",
+        bytes,
+        Cmr::unit(),
+        None,
+        None,
+        Some(ScriptError::SimplicityBitstreamEof),
+    ));
+
+    /*
+     * EOF inside witness block
+     */
+    let mut bytes = Vec::new();
+    let mut encoder = bit_encoding::Encoder::new(&mut bytes);
+
+    encoder.program_preamble(1).unwrap();
+    encoder.unit().unwrap();
+    encoder.witness_preamble(Some(1)).unwrap();
+    // No bits means we declared too many
+    // The decoder will stop here
+    encoder.finalize().unwrap();
+
+    test_cases.push(TestCase::new(
+        "bitstream_eof/witness_eof",
+        bytes,
+        Cmr::unit(),
+        None,
+        None,
+        Some(ScriptError::SimplicityBitstreamEof),
+    ));
+
+    /*
      * `case (drop iden) iden` fails the occurs check
      */
     let program_bytes = vec![0xc1, 0x07, 0x20, 0x30];
