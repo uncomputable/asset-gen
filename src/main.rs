@@ -40,6 +40,19 @@ fn main() {
     ));
 
     /*
+     * The taproot witness stack must have exactly 3 elements
+     */
+    let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
+    test_cases.push(TestCase::new(
+        "wrong_length/extra_script_input",
+        program.encode_to_vec(),
+        program.cmr(),
+        Some(vec![vec![0x00]]),
+        None,
+        Some(ScriptError::SimplicityWrongLength),
+    ));
+
+    /*
      * The CMR (taproot witness script) must be exactly 32 bytes
      */
     let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
@@ -48,6 +61,7 @@ fn main() {
         program.encode_to_vec(),
         &[0x00; 33],
         None,
+        None,
         Some(ScriptError::SimplicityWrongLength),
     ));
 
@@ -55,6 +69,7 @@ fn main() {
         "wrong_length/missing_cmr_byte",
         program.encode_to_vec(),
         &[0x00; 31],
+        None,
         None,
         Some(ScriptError::SimplicityWrongLength),
     ));
@@ -91,6 +106,7 @@ fn main() {
         "type/occurs_check_failure",
         program_bytes,
         commit,
+        None,
         None,
         Some(ScriptError::SimplicityTypeInferenceOccursCheck),
     ));
@@ -180,6 +196,7 @@ fn main() {
         "cost/memory_exceeds_limit",
         program_bytes,
         commit,
+        None,
         None,
         Some(ScriptError::SimplicityExecMemory),
     ));

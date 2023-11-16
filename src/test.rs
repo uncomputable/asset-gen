@@ -12,6 +12,7 @@ impl TestCase {
         comment: &'static str,
         program_bytes: Vec<u8>,
         commit: A,
+        extra_script_inputs: Option<Vec<Vec<u8>>>,
         cost: Option<simplicity::Cost>,
         error: Option<ScriptError>,
     ) -> Self {
@@ -25,6 +26,10 @@ impl TestCase {
 
         let mut witness =
             util::get_witness_stack(program_bytes, util::to_script(commit), control_block);
+
+        if let Some(after_program) = extra_script_inputs {
+            witness.splice(1..1, after_program);
+        }
 
         if let Some(cost) = cost {
             if let Some(annex) = cost.get_padding(&witness) {
@@ -60,7 +65,7 @@ impl TestCase {
         let program = simplicity::CommitNode::<simplicity::jet::Core>::decode(&mut bits).unwrap();
         let commit = program.cmr();
 
-        Self::new(comment, program_bytes, commit, None, error)
+        Self::new(comment, program_bytes, commit, None, None, error)
     }
 
     pub fn from_string(
@@ -81,6 +86,7 @@ impl TestCase {
             comment,
             program_bytes,
             program.cmr(),
+            None,
             Some(program.bounds().cost),
             error,
         )
