@@ -14,16 +14,17 @@ use simplicity::WitnessNode;
 
 use crate::json::{Flag, Parameters, ScriptError, Serde, TestCase};
 
-fn test_case(
+fn test_case<A: AsRef<[u8]> + Clone>(
     comment: &'static str,
     program_bytes: Vec<u8>,
-    commit: simplicity::Cmr,
+    commit: A,
     cost: Option<simplicity::Cost>,
     error: Option<ScriptError>,
 ) -> TestCase {
-    let spend_info = util::get_spend_info(commit, simplicity::leaf_version());
+    let spend_info = util::get_spend_info(commit.clone(), simplicity::leaf_version());
     let control_block =
-        util::get_control_block(commit, simplicity::leaf_version(), &spend_info).expect("const");
+        util::get_control_block(commit.clone(), simplicity::leaf_version(), &spend_info)
+            .expect("const");
 
     let funding_tx = get_funding_tx(&spend_info);
     let spending_tx = get_spending_tx(&funding_tx);
@@ -151,6 +152,27 @@ fn main() {
         s,
         &empty_witness,
         None,
+    ));
+
+    /*
+     * The CMR (taproot witness script) must be exactly 32 bytes
+     */
+    let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
+
+    test_cases.push(test_case(
+        "wrong_length/extra_cmr_byte",
+        program.encode_to_vec(),
+        &[0x00; 33],
+        None,
+        Some(ScriptError::SimplicityWrongLength),
+    ));
+
+    test_cases.push(test_case(
+        "wrong_length/missing_cmr_byte",
+        program.encode_to_vec(),
+        &[0x00; 31],
+        None,
+        Some(ScriptError::SimplicityWrongLength),
     ));
 
     /*
