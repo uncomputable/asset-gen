@@ -1,4 +1,5 @@
 mod json;
+mod test;
 mod util;
 
 use std::collections::HashMap;
@@ -6,127 +7,11 @@ use std::fs::File;
 use std::io::Write;
 use std::sync::Arc;
 
-use elements_miniscript as miniscript;
-use miniscript::elements;
 use simplicity::jet::Core;
 use simplicity::node::CoreConstructible;
 use simplicity::WitnessNode;
 
-use crate::json::{Flag, Parameters, ScriptError, Serde, TestCase};
-
-fn test_case<A: AsRef<[u8]> + Clone>(
-    comment: &'static str,
-    program_bytes: Vec<u8>,
-    commit: A,
-    cost: Option<simplicity::Cost>,
-    error: Option<ScriptError>,
-) -> TestCase {
-    let spend_info = util::get_spend_info(commit.clone(), simplicity::leaf_version());
-    let control_block =
-        util::get_control_block(commit.clone(), simplicity::leaf_version(), &spend_info)
-            .expect("const");
-
-    let funding_tx = get_funding_tx(&spend_info);
-    let spending_tx = get_spending_tx(&funding_tx);
-
-    let mut witness =
-        util::get_witness_stack(program_bytes, util::to_script(commit), control_block);
-
-    if let Some(cost) = cost {
-        if let Some(annex) = cost.get_padding(&witness) {
-            witness.push(annex);
-        }
-    }
-
-    let parameters = Parameters::taproot(witness, error);
-    let (success, failure) = match error {
-        None => (Some(parameters), None),
-        Some(_) => (None, Some(parameters)),
-    };
-
-    TestCase {
-        tx: Serde(spending_tx),
-        prevouts: funding_tx.output.into_iter().map(Serde).collect(),
-        index: 0,
-        flags: Flag::all_flags().to_vec(),
-        comment: comment.to_string(),
-        hash_genesis_block: None,
-        success,
-        failure,
-        is_final: false,
-    }
-}
-
-fn test_case_bytes(
-    comment: &'static str,
-    program_bytes: Vec<u8>,
-    error: Option<ScriptError>,
-) -> TestCase {
-    let mut bits = simplicity::BitIter::new(program_bytes.iter().copied());
-    let program =
-        simplicity::CommitNode::<simplicity::jet::Core>::decode(&mut bits).expect("const");
-    let commit = program.cmr();
-
-    test_case(comment, program_bytes, commit, None, error)
-}
-
-fn test_case_string(
-    comment: &'static str,
-    s: &str,
-    witness: &HashMap<Arc<str>, Arc<simplicity::Value>>,
-    error: Option<ScriptError>,
-) -> TestCase {
-    let forest =
-        simplicity::human_encoding::Forest::<simplicity::jet::Core>::parse(s).expect("parse");
-    let program = forest
-        .to_witness_node(witness)
-        .finalize()
-        .expect("finalize");
-    let program_bytes = program.encode_to_vec();
-    test_case(
-        comment,
-        program_bytes,
-        program.cmr(),
-        Some(program.bounds().cost),
-        error,
-    )
-}
-
-fn get_funding_tx(spend_info: &elements::taproot::TaprootSpendInfo) -> elements::Transaction {
-    let coinbase = elements::TxIn::default();
-    let output = elements::TxOut {
-        asset: elements::confidential::Asset::Null,
-        value: elements::confidential::Value::Null,
-        nonce: elements::confidential::Nonce::Null,
-        script_pubkey: util::get_script_pubkey(spend_info),
-        // The witness is overwritten by script_tests.cpp based on the success / failure parameters
-        witness: elements::TxOutWitness::default(),
-    };
-    elements::Transaction {
-        version: 2,
-        lock_time: elements::LockTime::ZERO,
-        input: vec![coinbase],
-        output: vec![output],
-    }
-}
-
-fn get_spending_tx(funding_tx: &elements::Transaction) -> elements::Transaction {
-    let input = elements::TxIn {
-        previous_output: util::to_outpoint(funding_tx),
-        is_pegin: false,
-        script_sig: elements::Script::new(),
-        sequence: elements::Sequence::MAX,
-        asset_issuance: elements::AssetIssuance::default(),
-        witness: elements::TxInWitness::default(),
-    };
-    let dummy = elements::TxOut::default();
-    elements::Transaction {
-        version: 2,
-        lock_time: elements::LockTime::ZERO,
-        input: vec![input],
-        output: vec![dummy],
-    }
-}
+use crate::json::{ScriptError, TestCase};
 
 fn main() {
     let mut test_cases = Vec::new();
@@ -136,7 +21,7 @@ fn main() {
      * `unit` is an ANYONECANSPEND
      */
     let s = "main := unit";
-    test_cases.push(test_case_string(
+    test_cases.push(TestCase::from_string(
         "unit_anyonecanspend",
         s,
         &empty_witness,
@@ -147,7 +32,7 @@ fn main() {
      * `iden` is an ANYONECANSPEND
      */
     let s = "main := iden";
-    test_cases.push(test_case_string(
+    test_cases.push(TestCase::from_string(
         "iden_anyonecanspend",
         s,
         &empty_witness,
@@ -158,8 +43,7 @@ fn main() {
      * The CMR (taproot witness script) must be exactly 32 bytes
      */
     let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
-
-    test_cases.push(test_case(
+    test_cases.push(TestCase::new(
         "wrong_length/extra_cmr_byte",
         program.encode_to_vec(),
         &[0x00; 33],
@@ -167,7 +51,7 @@ fn main() {
         Some(ScriptError::SimplicityWrongLength),
     ));
 
-    test_cases.push(test_case(
+    test_cases.push(TestCase::new(
         "wrong_length/missing_cmr_byte",
         program.encode_to_vec(),
         &[0x00; 31],
@@ -203,7 +87,7 @@ fn main() {
     assert_eq!(commit, program.cmr());
     */
 
-    test_cases.push(test_case(
+    test_cases.push(TestCase::new(
         "type/occurs_check_failure",
         program_bytes,
         commit,
@@ -226,7 +110,7 @@ fn main() {
     simplicity::encode::encode_natural(1 << 31, &mut bits).unwrap();
     bits.flush_all().unwrap();
 
-    test_cases.push(test_case_bytes(
+    test_cases.push(TestCase::from_bytes(
         "witness/bitstring_too_long",
         bytes,
         Some(ScriptError::SimplicityDataOutOfRange),
@@ -247,7 +131,7 @@ fn main() {
     simplicity::encode::encode_natural((1 << 31) - 1, &mut bits).unwrap();
     bits.flush_all().unwrap();
 
-    test_cases.push(test_case_bytes(
+    test_cases.push(TestCase::from_bytes(
         "witness/bitstring_too_short",
         bytes,
         Some(ScriptError::SimplicityBitstreamEof),
@@ -292,7 +176,7 @@ fn main() {
     assert_eq!(commit, program.cmr());
     */
 
-    test_cases.push(test_case(
+    test_cases.push(TestCase::new(
         "cost/memory_exceeds_limit",
         program_bytes,
         commit,
@@ -330,7 +214,7 @@ fn main() {
         cp21 := comp cp20 cp20
         main := comp cp21 cp21
     ";
-    test_cases.push(test_case_string(
+    test_cases.push(TestCase::from_string(
         "cost/large_program_within_budget",
         s,
         &empty_witness,
@@ -345,7 +229,7 @@ fn main() {
     // Trailing byte
     bytes.push(0x00);
 
-    test_cases.push(test_case_bytes(
+    test_cases.push(TestCase::from_bytes(
         "program/trailing_bytes",
         bytes,
         Some(ScriptError::SimplicityBitstreamUnusedBytes),
@@ -366,7 +250,7 @@ fn main() {
     bits.write_bits_be(u64::MAX, 1).unwrap();
     bits.flush_all().unwrap();
 
-    test_cases.push(test_case_bytes(
+    test_cases.push(TestCase::from_bytes(
         "program/illegal_padding",
         bytes,
         Some(ScriptError::SimplicityBitstreamUnusedBits),
