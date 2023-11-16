@@ -1,3 +1,4 @@
+mod bit_encoding;
 mod json;
 mod test;
 mod util;
@@ -9,7 +10,7 @@ use std::sync::Arc;
 
 use simplicity::jet::Core;
 use simplicity::node::CoreConstructible;
-use simplicity::WitnessNode;
+use simplicity::{Cmr, WitnessNode};
 
 use crate::json::{ScriptError, TestCase};
 
@@ -114,17 +115,14 @@ fn main() {
     /*
      * Too long witness (witness must be shorter than 2^31 bits)
      */
-    let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
-
     let mut bytes = Vec::new();
-    let mut bits = simplicity::BitWriter::new(&mut bytes);
-    simplicity::encode::encode_program(&program, &mut bits).unwrap();
+    let mut encoder = bit_encoding::Encoder::new(&mut bytes);
 
-    // Manual witness of length 2^31
-    // The decoder will stop at the length declaration, so the payload of 31 zeroes is omitted
-    bits.write_bit(true).unwrap();
-    simplicity::encode::encode_natural(1 << 31, &mut bits).unwrap();
-    bits.flush_all().unwrap();
+    encoder.program_preamble(1).unwrap();
+    encoder.unit().unwrap();
+    encoder.witness_preamble(Some(1 << 31)).unwrap();
+    // The decoder will stop here
+    encoder.finalize().unwrap();
 
     test_cases.push(TestCase::from_bytes(
         "witness/bitstring_too_long",
@@ -135,17 +133,14 @@ fn main() {
     /*
      * Incomplete witness (fewer bits than declared)
      */
-    let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
-
     let mut bytes = Vec::new();
-    let mut bits = simplicity::BitWriter::new(&mut bytes);
-    simplicity::encode::encode_program(&program, &mut bits).unwrap();
+    let mut encoder = bit_encoding::Encoder::new(&mut bytes);
 
-    // Manual witness of length 2^31 - 1
-    // The payload of 30 ones is missing, because this is what we are testing
-    bits.write_bit(true).unwrap();
-    simplicity::encode::encode_natural((1 << 31) - 1, &mut bits).unwrap();
-    bits.flush_all().unwrap();
+    encoder.program_preamble(1).unwrap();
+    encoder.unit().unwrap();
+    encoder.witness_preamble(Some((1 << 31) - 1)).unwrap();
+    // No bits means we declared too many
+    encoder.finalize().unwrap();
 
     test_cases.push(TestCase::from_bytes(
         "witness/bitstring_too_short",
@@ -255,17 +250,15 @@ fn main() {
     /*
      * Illegal padding in final program byte (malleability)
      */
-    let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
-
     let mut bytes = Vec::new();
-    let mut bits = simplicity::BitWriter::new(&mut bytes);
-    simplicity::encode::encode_program(&program, &mut bits).unwrap();
+    let mut encoder = bit_encoding::Encoder::new(&mut bytes);
 
-    // Manual empty witness
-    bits.write_bit(false).unwrap();
+    encoder.program_preamble(1).unwrap();
+    encoder.unit().unwrap();
+    encoder.witness_preamble(None).unwrap();
     // Illegal padding
-    bits.write_bits_be(u64::MAX, 1).unwrap();
-    bits.flush_all().unwrap();
+    encoder.bits_be(u64::MAX, 1).unwrap();
+    encoder.finalize().unwrap();
 
     test_cases.push(TestCase::from_bytes(
         "program/illegal_padding",
