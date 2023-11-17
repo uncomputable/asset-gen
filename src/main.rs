@@ -80,8 +80,8 @@ fn main() {
      */
     let mut encoder = bit_encoding::Encoder::new();
 
-    // Final bit missing from program length = 2
-    encoder.bits_be(0b1, 1);
+    encoder.program_preamble(2);
+    encoder.delete_bits(1);
     // The decoder will stop here
 
     let bytes = encoder.finalize().unwrap_err().expect_padding();
@@ -103,9 +103,8 @@ fn main() {
     encoder.program_preamble(3);
     encoder.unit();
     encoder.iden();
-    // Final two bits missing from `comp`
-    encoder.bits_be(0b000, 3);
-    assert_eq!(16, encoder.n_total_written());
+    encoder.comp(2, 1);
+    encoder.delete_bits(2 + 1 + 3); // Delete bits to reach byte boundary
     // The decoder will stop here
 
     let bytes = encoder.finalize().unwrap();

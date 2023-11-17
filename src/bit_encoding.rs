@@ -99,6 +99,23 @@ impl Encoder {
         self.value(value);
     }
 
+    pub fn delete_bits(&mut self, mut bit_len: usize) {
+        while bit_len > 0 {
+            if let Some((word, word_len)) = self.queue.pop_back() {
+                if usize::from(word_len) <= bit_len {
+                    // Delete entire word
+                    bit_len = bit_len.saturating_sub(usize::from(word_len));
+                } else {
+                    // Truncate word and put it back
+                    let truncated_word = word >> bit_len;
+                    let truncated_word_len = word_len - bit_len as u8; // cast safety: bit_len < word_len <= u8::MAX
+                    self.queue.push_back((truncated_word, truncated_word_len));
+                    return;
+                }
+            }
+        }
+    }
+
     pub fn witness_preamble(&mut self, len: Option<usize>) {
         match len {
             None => self.queue.push_back((0b0, 1)),
