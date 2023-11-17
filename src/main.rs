@@ -237,6 +237,28 @@ fn main() {
     ));
 
     /*
+     * Program is not serialized in canonical order
+     */
+    let bytes = bit_encoding::Encoder::new()
+        .program_preamble(3)
+        .unit()
+        .iden()
+        .comp(1, 2)
+        .witness_preamble(None)
+        .get_bytes()
+        .unwrap_err()
+        .unwrap_padding();
+
+    test_cases.push(TestCase::new(
+        "data_out_of_order/not_in_canonical_order",
+        bytes,
+        Cmr::comp(Cmr::unit(), Cmr::iden()),
+        None,
+        None,
+        Some(ScriptError::SimplicityDataOutOfOrder),
+    ));
+
+    /*
      * `case (drop iden) iden` fails the occurs check
      */
     let program_bytes = vec![0xc1, 0x07, 0x20, 0x30];
