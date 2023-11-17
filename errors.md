@@ -26,9 +26,9 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
 - witness block is declared length >= 2^31
 - index points past beginning of program
     - relative index ix is greater than current absolute node index
-    - WHAT ABOUT EQUALITY???
+    - relative indices cannot be zero because zero cannot be encoded!
 - jet is not defined
-- word depth >= 32 (size >= 2^31 bits)
+- word depth > 32 (word longer than 2^31 bits)
 
 # `SCRIPT_ERR_SIMPLICITY_DATA_OUT_OF_ORDER`
 
