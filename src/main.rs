@@ -334,7 +334,7 @@ fn main() {
     /*
      * Export test cases to JSON
      */
-    let s = serde_json::to_string(&test_cases).expect("serialize");
+    let s = serde_json::to_string_pretty(&test_cases).expect("serialize");
     let mut file = File::create("script_assets_test.json").expect("Unable to create file");
     file.write_all(s.as_bytes()).expect("Unable to write data");
 }
