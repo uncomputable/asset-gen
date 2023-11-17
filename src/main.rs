@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use simplicity::jet::Core;
 use simplicity::node::CoreConstructible;
-use simplicity::{Cmr, WitnessNode};
+use simplicity::{Cmr, Value, WitnessNode};
 
 use crate::json::{ScriptError, TestCase};
 
@@ -136,6 +136,107 @@ fn main() {
     ));
 
     /*
+     * Program declared longer than DAG_LEN_MAX
+     */
+    let dag_len_max = 8_000_000;
+    let bytes = bit_encoding::Encoder::new()
+        .program_preamble(dag_len_max + 1)
+        .get_bytes()
+        .unwrap_err()
+        .unwrap_padding();
+
+    test_cases.push(TestCase::new(
+        "data_out_of_range/program_length",
+        bytes,
+        &[0; 32],
+        None,
+        None,
+        Some(ScriptError::SimplicityDataOutOfRange),
+    ));
+
+    /*
+     * Witness block declared longer than 2^31 - 1
+     */
+    let bytes = bit_encoding::Encoder::new()
+        .program_preamble(1)
+        .unit()
+        .witness_preamble(Some(1 << 31))
+        .get_bytes()
+        .unwrap_err()
+        .unwrap_padding();
+
+    test_cases.push(TestCase::new(
+        "data_out_of_range/witness_length",
+        bytes,
+        Cmr::unit(),
+        None,
+        None,
+        Some(ScriptError::SimplicityDataOutOfRange),
+    ));
+
+    /*
+     * Index points past beginning of program
+     */
+    let bytes = bit_encoding::Encoder::new()
+        .program_preamble(2)
+        .unit()
+        .comp(2, 1) // Left child does not exist
+        .witness_preamble(None)
+        .get_bytes()
+        .unwrap_err()
+        .unwrap_padding();
+
+    test_cases.push(TestCase::new(
+        "data_out_of_range/relative_combinator_index",
+        bytes,
+        Cmr::comp(Cmr::unit(), Cmr::unit()),
+        None,
+        None,
+        Some(ScriptError::SimplicityDataOutOfRange),
+    ));
+
+    /*
+     * Jet is not defined
+     */
+    let bytes = bit_encoding::Encoder::new()
+        .program_preamble(1)
+        .jet(u64::MAX, 64) // It is unlikely that all-ones will become a jet soon
+        .witness_preamble(None)
+        .get_bytes()
+        .unwrap_err()
+        .unwrap_padding();
+
+    test_cases.push(TestCase::new(
+        "data_out_of_range/undefined_jet",
+        bytes,
+        &[0; 32],
+        None,
+        None,
+        Some(ScriptError::SimplicityDataOutOfRange),
+    ));
+
+    /*
+     * Word depth greater than 32 (word longer than 2^31 bits)
+     */
+    let value = Value::u1(0);
+    let bytes = bit_encoding::Encoder::new()
+        .program_preamble(1)
+        .word(33, &value)
+        .witness_preamble(None)
+        .get_bytes()
+        .unwrap_err()
+        .unwrap_padding();
+
+    test_cases.push(TestCase::new(
+        "data_out_of_range/word_depth",
+        bytes,
+        Cmr::const_word(&value),
+        None,
+        None,
+        Some(ScriptError::SimplicityDataOutOfRange),
+    ));
+
+    /*
      * `case (drop iden) iden` fails the occurs check
      */
     let program_bytes = vec![0xc1, 0x07, 0x20, 0x30];
@@ -170,23 +271,6 @@ fn main() {
         None,
         None,
         Some(ScriptError::SimplicityTypeInferenceOccursCheck),
-    ));
-
-    /*
-     * Too long witness (witness must be shorter than 2^31 bits)
-     */
-    let bytes = bit_encoding::Encoder::new()
-        .program_preamble(1)
-        .unit()
-        .witness_preamble(Some(1 << 31))
-        .get_bytes()
-        .unwrap_err()
-        .unwrap_padding();
-
-    test_cases.push(TestCase::from_bytes(
-        "witness/bitstring_too_long",
-        bytes,
-        Some(ScriptError::SimplicityDataOutOfRange),
     ));
 
     /*
