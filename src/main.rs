@@ -280,6 +280,25 @@ fn main() {
     ));
 
     /*
+     * Program contains the stop code
+     */
+    let bytes = bit_encoding::Encoder::new()
+        .program_preamble(1)
+        .stop()
+        .get_bytes()
+        .unwrap_err()
+        .unwrap_padding();
+
+    test_cases.push(TestCase::new(
+        "stop_code/stop_code",
+        bytes,
+        &[0; 32],
+        None,
+        None,
+        Some(ScriptError::SimplicityStopCode),
+    ));
+
+    /*
      * `case (drop iden) iden` fails the occurs check
      */
     let program_bytes = vec![0xc1, 0x07, 0x20, 0x30];
