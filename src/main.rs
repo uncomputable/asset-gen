@@ -88,7 +88,7 @@ fn main() {
     test_cases.push(TestCase::new(
         "bitstream_eof/program_length_eof",
         bytes,
-        Cmr::unit(),
+        &[0; 32],
         None,
         None,
         Some(ScriptError::SimplicityBitstreamEof),
@@ -109,7 +109,7 @@ fn main() {
     test_cases.push(TestCase::new(
         "bitstream_eof/combinator_eof",
         bytes,
-        Cmr::unit(),
+        Cmr::case(Cmr::unit(), Cmr::iden()),
         None,
         None,
         Some(ScriptError::SimplicityBitstreamEof),
