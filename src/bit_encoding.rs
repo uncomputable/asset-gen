@@ -16,21 +16,20 @@ impl Encoder {
         }
     }
 
-    pub fn n_total_written(&self) -> usize {
-        self.queue.iter().map(|e| usize::from(e.1)).sum()
-    }
-
-    pub fn bits_be(&mut self, bits: u64, bit_len: u8) {
+    pub fn bits_be(mut self, bits: u64, bit_len: u8) -> Self {
         self.queue.push_back((bits, bit_len));
+        self
     }
 
-    pub fn bytes_be(&mut self, bytes: &[u8]) {
+    pub fn bytes_be(mut self, bytes: &[u8]) -> Self {
         for byte in bytes {
-            self.bits_be(u64::from(*byte), 8);
+            self = self.bits_be(u64::from(*byte), 8);
         }
+
+        self
     }
 
-    pub fn positive_integer(&mut self, n: usize) {
+    pub fn positive_integer(mut self, n: usize) -> Self {
         let mut bytes = Vec::new();
         let mut writer = BitWriter::new(&mut bytes);
         let bit_len = encode::encode_natural(n, &mut writer).expect("I/O to vector never fails");
@@ -38,9 +37,10 @@ impl Encoder {
 
         let words = bytes_to_words(&bytes, bit_len);
         self.queue.extend(words);
+        self
     }
 
-    pub fn value(&mut self, value: &Value) {
+    pub fn value(mut self, value: &Value) -> Self {
         let mut bytes = Vec::new();
         let mut writer = BitWriter::new(&mut bytes);
         let bit_len = encode::encode_value(value, &mut writer).expect("I/O to vector never fails");
@@ -48,58 +48,69 @@ impl Encoder {
 
         let words = bytes_to_words(&bytes, bit_len);
         self.queue.extend(words);
+        self
     }
 
-    pub fn program_preamble(&mut self, len: usize) {
-        self.positive_integer(len);
+    pub fn program_preamble(mut self, len: usize) -> Self {
+        self = self.positive_integer(len);
+        self
     }
 
-    pub fn unit(&mut self) {
+    pub fn unit(mut self) -> Self {
         self.queue.push_back((0b01001, 5));
+        self
     }
 
-    pub fn iden(&mut self) {
+    pub fn iden(mut self) -> Self {
         self.queue.push_back((0b01000, 5));
+        self
     }
 
-    pub fn comp(&mut self, left_offset: usize, right_offset: usize) {
+    pub fn comp(mut self, left_offset: usize, right_offset: usize) -> Self {
         self.queue.push_back((0x00000, 5));
-        self.positive_integer(left_offset);
-        self.positive_integer(right_offset);
+        self = self.positive_integer(left_offset);
+        self = self.positive_integer(right_offset);
+        self
     }
 
-    pub fn case(&mut self, left_offset: usize, right_offset: usize) {
+    pub fn case(mut self, left_offset: usize, right_offset: usize) -> Self {
         self.queue.push_back((0x00001, 5));
-        self.positive_integer(left_offset);
-        self.positive_integer(right_offset);
+        self = self.positive_integer(left_offset);
+        self = self.positive_integer(right_offset);
+        self
     }
 
-    pub fn hidden(&mut self, payload: &[u8]) {
+    pub fn hidden(mut self, payload: &[u8]) -> Self {
         self.queue.push_back((0x0110, 5));
-        self.bytes_be(payload);
+        self = self.bytes_be(payload);
+        self
     }
 
-    pub fn fail(&mut self, entropy: &[u8]) {
+    pub fn fail(mut self, entropy: &[u8]) -> Self {
         self.queue.push_back((0b01010, 5));
-        self.bytes_be(entropy);
+        self = self.bytes_be(entropy);
+        self
     }
 
-    pub fn stop(&mut self) {
+    pub fn stop(mut self) -> Self {
         self.queue.push_back((0b01011, 5));
+        self
     }
 
-    pub fn jet(&mut self, bits: u64, bit_len: u8) {
+    pub fn jet(mut self, bits: u64, bit_len: u8) -> Self {
         self.queue.push_back((0b11, 2));
         self.queue.push_back((bits, bit_len));
+        self
     }
 
-    pub fn word(&mut self, depth: usize, value: &Value) {
+    pub fn word(mut self, depth: usize, value: &Value) -> Self {
         self.queue.push_back((0b10, 2));
-        self.positive_integer(depth);
-        self.value(value);
+        self = self.positive_integer(depth);
+        self = self.value(value);
+        self
     }
 
-    pub fn delete_bits(&mut self, mut bit_len: usize) {
+    pub fn delete_bits(mut self, mut bit_len: usize) -> Self {
         while bit_len > 0 {
             if let Some((word, word_len)) = self.queue.pop_back() {
                 if usize::from(word_len) <= bit_len {
@@ -110,23 +121,27 @@ impl Encoder {
                     let truncated_word = word >> bit_len;
                     let truncated_word_len = word_len - bit_len as u8; // cast safety: bit_len < word_len <= u8::MAX
                     self.queue.push_back((truncated_word, truncated_word_len));
-                    return;
+                    break;
                 }
             }
         }
+
+        self
     }
 
-    pub fn witness_preamble(&mut self, len: Option<usize>) {
+    pub fn witness_preamble(mut self, len: Option<usize>) -> Self {
         match len {
             None => self.queue.push_back((0b0, 1)),
             Some(len) => {
                 self.queue.push_back((0b1, 1));
-                self.positive_integer(len);
+                self = self.positive_integer(len);
             }
         }
+
+        self
     }
 
-    pub fn finalize(mut self) -> Result<Vec<u8>, Error> {
+    pub fn get_bytes(mut self) -> Result<Vec<u8>, Error> {
         let mut bytes = Vec::new();
         let mut writer = BitWriter::new(&mut bytes);
 

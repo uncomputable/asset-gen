@@ -78,13 +78,12 @@ fn main() {
     /*
      * EOF inside program length encoding
      */
-    let mut encoder = bit_encoding::Encoder::new();
-
-    encoder.program_preamble(2);
-    encoder.delete_bits(1);
-    // The decoder will stop here
-
-    let bytes = encoder.finalize().unwrap_err().expect_padding(6);
+    let bytes = bit_encoding::Encoder::new()
+        .program_preamble(2)
+        .delete_bits(1)
+        .get_bytes()
+        .unwrap_err()
+        .expect_padding(6);
 
     test_cases.push(TestCase::new(
         "bitstream_eof/program_length_eof",
@@ -98,16 +97,14 @@ fn main() {
     /*
      * EOF inside combinator encoding
      */
-    let mut encoder = bit_encoding::Encoder::new();
-
-    encoder.program_preamble(3);
-    encoder.unit();
-    encoder.iden();
-    encoder.comp(2, 1);
-    encoder.delete_bits(2 + 1 + 3); // Delete bits to reach byte boundary
-    // The decoder will stop here
-
-    let bytes = encoder.finalize().unwrap();
+    let bytes = bit_encoding::Encoder::new()
+        .program_preamble(3)
+        .unit()
+        .iden()
+        .comp(2, 1)
+        .delete_bits(2 + 1 + 3) // Delete bits to reach byte boundary
+        .get_bytes()
+        .unwrap();
 
     test_cases.push(TestCase::new(
         "bitstream_eof/combinator_eof",
@@ -121,15 +118,13 @@ fn main() {
     /*
      * EOF inside witness block
      */
-    let mut encoder = bit_encoding::Encoder::new();
-
-    encoder.program_preamble(1);
-    encoder.unit();
-    encoder.witness_preamble(Some(1));
-    // No bits means we declared too many
-    // The decoder will stop here
-
-    let bytes = encoder.finalize().unwrap();
+    let bytes = bit_encoding::Encoder::new()
+        .program_preamble(1)
+        .unit()
+        .witness_preamble(Some(1))
+        .bits_be(u64::default(), 0) // No bits means we declared too many
+        .get_bytes()
+        .unwrap();
 
     test_cases.push(TestCase::new(
         "bitstream_eof/witness_eof",
@@ -180,14 +175,13 @@ fn main() {
     /*
      * Too long witness (witness must be shorter than 2^31 bits)
      */
-    let mut encoder = bit_encoding::Encoder::new();
-
-    encoder.program_preamble(1);
-    encoder.unit();
-    encoder.witness_preamble(Some(1 << 31));
-    // The decoder will stop here
-
-    let bytes = encoder.finalize().unwrap_err().unwrap_padding();
+    let bytes = bit_encoding::Encoder::new()
+        .program_preamble(1)
+        .unit()
+        .witness_preamble(Some(1 << 31))
+        .get_bytes()
+        .unwrap_err()
+        .unwrap_padding();
 
     test_cases.push(TestCase::from_bytes(
         "witness/bitstring_too_long",
@@ -198,14 +192,14 @@ fn main() {
     /*
      * Incomplete witness (fewer bits than declared)
      */
-    let mut encoder = bit_encoding::Encoder::new();
-
-    encoder.program_preamble(1);
-    encoder.unit();
-    encoder.witness_preamble(Some((1 << 31) - 1));
-    // No bits means we declared too many
-
-    let bytes = encoder.finalize().unwrap_err().unwrap_padding();
+    let bytes = bit_encoding::Encoder::new()
+        .program_preamble(1)
+        .unit()
+        .witness_preamble(Some((1 << 31) - 1))
+        .bits_be(u64::default(), 0) // No bits means we declared too many
+        .get_bytes()
+        .unwrap_err()
+        .unwrap_padding();
 
     test_cases.push(TestCase::from_bytes(
         "witness/bitstring_too_short",
@@ -315,15 +309,13 @@ fn main() {
     /*
      * Illegal padding in final program byte (malleability)
      */
-    let mut encoder = bit_encoding::Encoder::new();
-
-    encoder.program_preamble(1);
-    encoder.unit();
-    encoder.witness_preamble(None);
-    // Illegal padding
-    encoder.bits_be(u64::MAX, 1);
-
-    let bytes = encoder.finalize().unwrap();
+    let bytes = bit_encoding::Encoder::new()
+        .program_preamble(1)
+        .unit()
+        .witness_preamble(None)
+        .bits_be(u64::MAX, 1) // Illegal padding
+        .get_bytes()
+        .unwrap();
 
     test_cases.push(TestCase::from_bytes(
         "program/illegal_padding",
