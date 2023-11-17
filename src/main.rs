@@ -516,6 +516,27 @@ fn main() {
     ));
 
     /*
+     * Program root is hidden
+     */
+    let hidden_cmr = Cmr::from_byte_array([0; 32]);
+    let bytes = bit_encoding::Encoder::new()
+        .program_preamble(1)
+        .hidden(hidden_cmr.as_ref())
+        .get_bytes()
+        .unwrap_err()
+        .unwrap_padding();
+
+    test_cases.push(TestCase::new(
+        "hidden_root/hidden_root",
+        bytes,
+        hidden_cmr,
+        None,
+        None,
+        // FIXME: Change to ScriptError::SimplicityHiddenRoot once Elements supports it
+        Some(ScriptError::UnknownError),
+    ));
+
+    /*
      * Export test cases to JSON
      */
     let s = serde_json::to_string_pretty(&test_cases).expect("serialize");
