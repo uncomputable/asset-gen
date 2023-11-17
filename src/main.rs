@@ -134,6 +134,26 @@ fn main() {
     ));
 
     /*
+     * EOF inside witness block (C test vector)
+     */
+    let bytes = bit_encoding::Program::program_preamble(1)
+        .unit()
+        .witness_preamble(Some((1 << 31) - 1))
+        .bits_be(u64::default(), 0) // No bits means we declared too many
+        .parser_stops_here()
+        .unwrap_err()
+        .unwrap_padding();
+
+    test_cases.push(TestCase::new(
+        "bitstream_eof/witness_eof_c_test_vector",
+        bytes,
+        Cmr::unit(),
+        None,
+        None,
+        Some(ScriptError::SimplicityBitstreamEof),
+    ));
+
+    /*
      * Program declared longer than DAG_LEN_MAX
      */
     let dag_len_max = 8_000_000;
@@ -367,23 +387,6 @@ fn main() {
         None,
         None,
         Some(ScriptError::SimplicityTypeInferenceOccursCheck),
-    ));
-
-    /*
-     * Incomplete witness (fewer bits than declared)
-     */
-    let bytes = bit_encoding::Program::program_preamble(1)
-        .unit()
-        .witness_preamble(Some((1 << 31) - 1))
-        .bits_be(u64::default(), 0) // No bits means we declared too many
-        .parser_stops_here()
-        .unwrap_err()
-        .unwrap_padding();
-
-    test_cases.push(TestCase::from_bytes(
-        "witness/bitstring_too_short",
-        bytes,
-        Some(ScriptError::SimplicityBitstreamEof),
     ));
 
     /*
