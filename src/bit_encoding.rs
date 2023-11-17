@@ -13,6 +13,10 @@ impl<W: io::Write> Encoder<W> {
         }
     }
 
+    pub fn n_total_written(&self) -> usize {
+        self.bits.n_total_written()
+    }
+
     pub fn bits_be(&mut self, bits: u64, bit_len: usize) -> io::Result<()> {
         self.bits.write_bits_be(bits, bit_len).map(|_| ())
     }
@@ -23,6 +27,10 @@ impl<W: io::Write> Encoder<W> {
 
     pub fn unit(&mut self) -> io::Result<()> {
         self.bits.write_bits_be(0b01001, 5).map(|_| ())
+    }
+
+    pub fn iden(&mut self) -> io::Result<()> {
+        self.bits.write_bits_be(0b01000, 5).map(|_| ())
     }
 
     pub fn comp(&mut self, left_offset: usize, right_offset: usize) -> io::Result<()> {

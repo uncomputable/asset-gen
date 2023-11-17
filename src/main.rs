@@ -101,9 +101,12 @@ fn main() {
     let mut bytes = Vec::new();
     let mut encoder = bit_encoding::Encoder::new(&mut bytes);
 
-    encoder.program_preamble(1).unwrap();
-    // Final bit missing from `unit`
-    encoder.bits_be(0b0100, 4).unwrap();
+    encoder.program_preamble(3).unwrap();
+    encoder.unit().unwrap();
+    encoder.iden().unwrap();
+    // Final two bits missing from `comp`
+    encoder.bits_be(0b000, 3).unwrap();
+    assert_eq!(16, encoder.n_total_written());
     // The decoder will stop here
     encoder.finalize().unwrap();
 
