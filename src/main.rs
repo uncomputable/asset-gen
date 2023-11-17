@@ -299,6 +299,52 @@ fn main() {
     ));
 
     /*
+     * Node other than `case` has hidden child
+     */
+    let hidden_cmr = Cmr::from_byte_array([0; 32]);
+    let bytes = bit_encoding::Encoder::new()
+        .program_preamble(3)
+        .hidden(hidden_cmr.as_ref())
+        .unit()
+        .comp(2, 1)
+        .witness_preamble(None)
+        .get_bytes()
+        .unwrap_err()
+        .unwrap_padding();
+
+    test_cases.push(TestCase::new(
+        "hidden/comp_hidden_child",
+        bytes,
+        Cmr::comp(hidden_cmr, Cmr::unit()),
+        None,
+        None,
+        Some(ScriptError::SimplicityHidden),
+    ));
+
+    /*
+     * `Case` has two hidden children
+     */
+    let hidden_cmr = Cmr::from_byte_array([0; 32]);
+    let bytes = bit_encoding::Encoder::new()
+        .program_preamble(3)
+        .hidden(hidden_cmr.as_ref())
+        .hidden(hidden_cmr.as_ref())
+        .case(2, 1)
+        .witness_preamble(None)
+        .get_bytes()
+        .unwrap_err()
+        .unwrap_padding();
+
+    test_cases.push(TestCase::new(
+        "hidden/two_hidden_children",
+        bytes,
+        Cmr::case(hidden_cmr, hidden_cmr),
+        None,
+        None,
+        Some(ScriptError::SimplicityHidden),
+    ));
+
+    /*
      * `case (drop iden) iden` fails the occurs check
      */
     let program_bytes = vec![0xc1, 0x07, 0x20, 0x30];
