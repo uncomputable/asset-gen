@@ -78,13 +78,13 @@ fn main() {
     /*
      * EOF inside program length encoding
      */
-    let mut bytes = Vec::new();
-    let mut encoder = bit_encoding::Encoder::new(&mut bytes);
+    let mut encoder = bit_encoding::Encoder::new();
 
     // Final bit missing from program length = 2
-    encoder.bits_be(0b1, 1).unwrap();
+    encoder.bits_be(0b1, 1);
     // The decoder will stop here
-    encoder.finalize().unwrap();
+
+    let bytes = encoder.finalize().unwrap_err().expect_padding();
 
     test_cases.push(TestCase::new(
         "bitstream_eof/program_length_eof",
@@ -98,17 +98,17 @@ fn main() {
     /*
      * EOF inside combinator encoding
      */
-    let mut bytes = Vec::new();
-    let mut encoder = bit_encoding::Encoder::new(&mut bytes);
+    let mut encoder = bit_encoding::Encoder::new();
 
-    encoder.program_preamble(3).unwrap();
-    encoder.unit().unwrap();
-    encoder.iden().unwrap();
+    encoder.program_preamble(3);
+    encoder.unit();
+    encoder.iden();
     // Final two bits missing from `comp`
-    encoder.bits_be(0b000, 3).unwrap();
+    encoder.bits_be(0b000, 3);
     assert_eq!(16, encoder.n_total_written());
     // The decoder will stop here
-    encoder.finalize().unwrap();
+
+    let bytes = encoder.finalize().unwrap();
 
     test_cases.push(TestCase::new(
         "bitstream_eof/combinator_eof",
@@ -122,15 +122,15 @@ fn main() {
     /*
      * EOF inside witness block
      */
-    let mut bytes = Vec::new();
-    let mut encoder = bit_encoding::Encoder::new(&mut bytes);
+    let mut encoder = bit_encoding::Encoder::new();
 
-    encoder.program_preamble(1).unwrap();
-    encoder.unit().unwrap();
-    encoder.witness_preamble(Some(1)).unwrap();
+    encoder.program_preamble(1);
+    encoder.unit();
+    encoder.witness_preamble(Some(1));
     // No bits means we declared too many
     // The decoder will stop here
-    encoder.finalize().unwrap();
+
+    let bytes = encoder.finalize().unwrap();
 
     test_cases.push(TestCase::new(
         "bitstream_eof/witness_eof",
@@ -181,14 +181,14 @@ fn main() {
     /*
      * Too long witness (witness must be shorter than 2^31 bits)
      */
-    let mut bytes = Vec::new();
-    let mut encoder = bit_encoding::Encoder::new(&mut bytes);
+    let mut encoder = bit_encoding::Encoder::new();
 
-    encoder.program_preamble(1).unwrap();
-    encoder.unit().unwrap();
-    encoder.witness_preamble(Some(1 << 31)).unwrap();
+    encoder.program_preamble(1);
+    encoder.unit();
+    encoder.witness_preamble(Some(1 << 31));
     // The decoder will stop here
-    encoder.finalize().unwrap();
+
+    let bytes = encoder.finalize().unwrap_err().expect_padding();
 
     test_cases.push(TestCase::from_bytes(
         "witness/bitstring_too_long",
@@ -199,14 +199,14 @@ fn main() {
     /*
      * Incomplete witness (fewer bits than declared)
      */
-    let mut bytes = Vec::new();
-    let mut encoder = bit_encoding::Encoder::new(&mut bytes);
+    let mut encoder = bit_encoding::Encoder::new();
 
-    encoder.program_preamble(1).unwrap();
-    encoder.unit().unwrap();
-    encoder.witness_preamble(Some((1 << 31) - 1)).unwrap();
+    encoder.program_preamble(1);
+    encoder.unit();
+    encoder.witness_preamble(Some((1 << 31) - 1));
     // No bits means we declared too many
-    encoder.finalize().unwrap();
+
+    let bytes = encoder.finalize().unwrap_err().expect_padding();
 
     test_cases.push(TestCase::from_bytes(
         "witness/bitstring_too_short",
@@ -316,15 +316,15 @@ fn main() {
     /*
      * Illegal padding in final program byte (malleability)
      */
-    let mut bytes = Vec::new();
-    let mut encoder = bit_encoding::Encoder::new(&mut bytes);
+    let mut encoder = bit_encoding::Encoder::new();
 
-    encoder.program_preamble(1).unwrap();
-    encoder.unit().unwrap();
-    encoder.witness_preamble(None).unwrap();
+    encoder.program_preamble(1);
+    encoder.unit();
+    encoder.witness_preamble(None);
     // Illegal padding
-    encoder.bits_be(u64::MAX, 1).unwrap();
-    encoder.finalize().unwrap();
+    encoder.bits_be(u64::MAX, 1);
+
+    let bytes = encoder.finalize().unwrap();
 
     test_cases.push(TestCase::from_bytes(
         "program/illegal_padding",
