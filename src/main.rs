@@ -84,7 +84,7 @@ fn main() {
     encoder.delete_bits(1);
     // The decoder will stop here
 
-    let bytes = encoder.finalize().unwrap_err().expect_padding();
+    let bytes = encoder.finalize().unwrap_err().expect_padding(6);
 
     test_cases.push(TestCase::new(
         "bitstream_eof/program_length_eof",
@@ -187,7 +187,7 @@ fn main() {
     encoder.witness_preamble(Some(1 << 31));
     // The decoder will stop here
 
-    let bytes = encoder.finalize().unwrap_err().expect_padding();
+    let bytes = encoder.finalize().unwrap_err().unwrap_padding();
 
     test_cases.push(TestCase::from_bytes(
         "witness/bitstring_too_long",
@@ -205,7 +205,7 @@ fn main() {
     encoder.witness_preamble(Some((1 << 31) - 1));
     // No bits means we declared too many
 
-    let bytes = encoder.finalize().unwrap_err().expect_padding();
+    let bytes = encoder.finalize().unwrap_err().unwrap_padding();
 
     test_cases.push(TestCase::from_bytes(
         "witness/bitstring_too_short",

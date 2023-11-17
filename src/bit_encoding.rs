@@ -137,9 +137,10 @@ impl Encoder {
         }
 
         writer.flush_all().expect("I/O to vector never fails");
+        let bit_len_final_byte = (writer.n_total_written() % 8) as u8; // cast safety: modulo 8
 
-        if writer.n_total_written() % 8 != 0 {
-            Err(Error::Padding(bytes))
+        if bit_len_final_byte > 0 {
+            Err(Error::Padding((bytes, 8 - bit_len_final_byte)))
         } else {
             Ok(bytes)
         }
@@ -148,13 +149,26 @@ impl Encoder {
 
 #[derive(Debug)]
 pub enum Error {
-    Padding(Vec<u8>),
+    Padding((Vec<u8>, u8)),
 }
 
 impl Error {
-    pub fn expect_padding(self) -> Vec<u8> {
+    pub fn unwrap_padding(self) -> Vec<u8> {
         match self {
-            Error::Padding(bytes) => bytes,
+            Error::Padding((bytes, _)) => bytes,
+        }
+    }
+
+    pub fn expect_padding(self, bit_len: u8) -> Vec<u8> {
+        match self {
+            Error::Padding((bytes, padding_len)) => {
+                assert_eq!(
+                    padding_len, bit_len,
+                    "There are actually {} padding bits",
+                    padding_len
+                );
+                bytes
+            }
         }
     }
 }
@@ -162,9 +176,10 @@ impl Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::Padding(bytes) => write!(
+            Error::Padding((bytes, padding_len)) => write!(
                 f,
-                "There is padding in the final byte of {}",
+                "There are {} bits of padding in the final byte of {}",
+                padding_len,
                 bytes.as_hex()
             ),
         }
