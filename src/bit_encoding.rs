@@ -67,21 +67,21 @@ impl Encoder {
     }
 
     pub fn comp(mut self, left_offset: usize, right_offset: usize) -> Self {
-        self.queue.push_back((0x00000, 5));
+        self.queue.push_back((0b00000, 5));
         self = self.positive_integer(left_offset);
         self = self.positive_integer(right_offset);
         self
     }
 
     pub fn case(mut self, left_offset: usize, right_offset: usize) -> Self {
-        self.queue.push_back((0x00001, 5));
+        self.queue.push_back((0b00001, 5));
         self = self.positive_integer(left_offset);
         self = self.positive_integer(right_offset);
         self
     }
 
     pub fn hidden(mut self, payload: &[u8]) -> Self {
-        self.queue.push_back((0x0110, 5));
+        self.queue.push_back((0b0110, 4));
         self = self.bytes_be(payload);
         self
     }
