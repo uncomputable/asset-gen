@@ -212,6 +212,10 @@ fn bytes_to_words(bytes: &[u8], mut bit_len: usize) -> Vec<(u64, u8)> {
         "Bit length points past end of byte string"
     );
 
+    if bytes.is_empty() || bit_len == 0 {
+        return Vec::new();
+    }
+
     let mut words: Vec<(u64, u8)> = Vec::new();
     let mut word = 0u64;
     let mut bits_in_word = 0u8;
