@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use simplicity::jet::Core;
 use simplicity::node::CoreConstructible;
-use simplicity::{Cmr, Value, WitnessNode};
+use simplicity::{Cmr, FailEntropy, Value, WitnessNode};
 
 use crate::json::{ScriptError, TestCase};
 
@@ -256,6 +256,27 @@ fn main() {
         None,
         None,
         Some(ScriptError::SimplicityDataOutOfOrder),
+    ));
+
+    /*
+     * Program contains a `fail` node
+     */
+    let entropy = FailEntropy::from_byte_array([0; 64]);
+    let bytes = bit_encoding::Encoder::new()
+        .program_preamble(1)
+        .fail(entropy.as_ref())
+        .witness_preamble(None)
+        .get_bytes()
+        .unwrap_err()
+        .unwrap_padding();
+
+    test_cases.push(TestCase::new(
+        "fail_code/fail_node",
+        bytes,
+        Cmr::fail(entropy),
+        None,
+        None,
+        Some(ScriptError::SimplicityFailCode),
     ));
 
     /*
