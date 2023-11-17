@@ -12,6 +12,7 @@ use simplicity::jet::Core;
 use simplicity::node::CoreConstructible;
 use simplicity::{Cmr, FailEntropy, Value, WitnessNode};
 
+use crate::bit_encoding::Builder;
 use crate::json::{ScriptError, TestCase};
 
 fn main() {
@@ -78,10 +79,9 @@ fn main() {
     /*
      * EOF inside program length encoding
      */
-    let bytes = bit_encoding::Encoder::new()
-        .program_preamble(2)
+    let bytes = bit_encoding::Program::program_preamble(2)
         .delete_bits(1)
-        .get_bytes()
+        .parser_stops_here()
         .unwrap_err()
         .expect_padding(6);
 
@@ -97,13 +97,12 @@ fn main() {
     /*
      * EOF inside combinator encoding
      */
-    let bytes = bit_encoding::Encoder::new()
-        .program_preamble(3)
+    let bytes = bit_encoding::Program::program_preamble(3)
         .unit()
         .iden()
         .comp(2, 1)
         .delete_bits(2 + 1 + 3) // Delete bits to reach byte boundary
-        .get_bytes()
+        .parser_stops_here()
         .unwrap();
 
     test_cases.push(TestCase::new(
@@ -118,12 +117,11 @@ fn main() {
     /*
      * EOF inside witness block
      */
-    let bytes = bit_encoding::Encoder::new()
-        .program_preamble(1)
+    let bytes = bit_encoding::Program::program_preamble(1)
         .unit()
         .witness_preamble(Some(1))
         .bits_be(u64::default(), 0) // No bits means we declared too many
-        .get_bytes()
+        .parser_stops_here()
         .unwrap();
 
     test_cases.push(TestCase::new(
@@ -139,9 +137,8 @@ fn main() {
      * Program declared longer than DAG_LEN_MAX
      */
     let dag_len_max = 8_000_000;
-    let bytes = bit_encoding::Encoder::new()
-        .program_preamble(dag_len_max + 1)
-        .get_bytes()
+    let bytes = bit_encoding::Program::program_preamble(dag_len_max + 1)
+        .parser_stops_here()
         .unwrap_err()
         .unwrap_padding();
 
@@ -157,11 +154,10 @@ fn main() {
     /*
      * Witness block declared longer than 2^31 - 1
      */
-    let bytes = bit_encoding::Encoder::new()
-        .program_preamble(1)
+    let bytes = bit_encoding::Program::program_preamble(1)
         .unit()
         .witness_preamble(Some(1 << 31))
-        .get_bytes()
+        .parser_stops_here()
         .unwrap_err()
         .unwrap_padding();
 
@@ -177,12 +173,11 @@ fn main() {
     /*
      * Index points past beginning of program
      */
-    let bytes = bit_encoding::Encoder::new()
-        .program_preamble(2)
+    let bytes = bit_encoding::Program::program_preamble(2)
         .unit()
         .comp(2, 1) // Left child does not exist
         .witness_preamble(None)
-        .get_bytes()
+        .program_finished()
         .unwrap_err()
         .unwrap_padding();
 
@@ -198,11 +193,10 @@ fn main() {
     /*
      * Jet is not defined
      */
-    let bytes = bit_encoding::Encoder::new()
-        .program_preamble(1)
+    let bytes = bit_encoding::Program::program_preamble(1)
         .jet(u64::MAX, 64) // It is unlikely that all-ones will become a jet soon
         .witness_preamble(None)
-        .get_bytes()
+        .program_finished()
         .unwrap_err()
         .unwrap_padding();
 
@@ -219,11 +213,10 @@ fn main() {
      * Word depth greater than 32 (word longer than 2^31 bits)
      */
     let value = Value::u1(0);
-    let bytes = bit_encoding::Encoder::new()
-        .program_preamble(1)
+    let bytes = bit_encoding::Program::program_preamble(1)
         .word(33, &value)
         .witness_preamble(None)
-        .get_bytes()
+        .program_finished()
         .unwrap_err()
         .unwrap_padding();
 
@@ -239,13 +232,12 @@ fn main() {
     /*
      * Program is not serialized in canonical order
      */
-    let bytes = bit_encoding::Encoder::new()
-        .program_preamble(3)
+    let bytes = bit_encoding::Program::program_preamble(3)
         .unit()
         .iden()
         .comp(1, 2)
         .witness_preamble(None)
-        .get_bytes()
+        .program_finished()
         .unwrap_err()
         .unwrap_padding();
 
@@ -262,11 +254,10 @@ fn main() {
      * Program contains a `fail` node
      */
     let entropy = FailEntropy::from_byte_array([0; 64]);
-    let bytes = bit_encoding::Encoder::new()
-        .program_preamble(1)
+    let bytes = bit_encoding::Program::program_preamble(1)
         .fail(entropy.as_ref())
         .witness_preamble(None)
-        .get_bytes()
+        .program_finished()
         .unwrap_err()
         .unwrap_padding();
 
@@ -282,10 +273,9 @@ fn main() {
     /*
      * Program contains the stop code
      */
-    let bytes = bit_encoding::Encoder::new()
-        .program_preamble(1)
+    let bytes = bit_encoding::Program::program_preamble(1)
         .stop()
-        .get_bytes()
+        .parser_stops_here()
         .unwrap_err()
         .unwrap_padding();
 
@@ -302,13 +292,12 @@ fn main() {
      * Node other than `case` has hidden child
      */
     let hidden_cmr = Cmr::from_byte_array([0; 32]);
-    let bytes = bit_encoding::Encoder::new()
-        .program_preamble(3)
+    let bytes = bit_encoding::Program::program_preamble(3)
         .hidden(hidden_cmr.as_ref())
         .unit()
         .comp(2, 1)
         .witness_preamble(None)
-        .get_bytes()
+        .program_finished()
         .unwrap_err()
         .unwrap_padding();
 
@@ -325,13 +314,12 @@ fn main() {
      * `Case` has two hidden children
      */
     let hidden_cmr = Cmr::from_byte_array([0; 32]);
-    let bytes = bit_encoding::Encoder::new()
-        .program_preamble(3)
+    let bytes = bit_encoding::Program::program_preamble(3)
         .hidden(hidden_cmr.as_ref())
         .hidden(hidden_cmr.as_ref())
         .case(2, 1)
         .witness_preamble(None)
-        .get_bytes()
+        .program_finished()
         .unwrap_err()
         .unwrap_padding();
 
@@ -384,12 +372,11 @@ fn main() {
     /*
      * Incomplete witness (fewer bits than declared)
      */
-    let bytes = bit_encoding::Encoder::new()
-        .program_preamble(1)
+    let bytes = bit_encoding::Program::program_preamble(1)
         .unit()
         .witness_preamble(Some((1 << 31) - 1))
         .bits_be(u64::default(), 0) // No bits means we declared too many
-        .get_bytes()
+        .parser_stops_here()
         .unwrap_err()
         .unwrap_padding();
 
@@ -501,12 +488,12 @@ fn main() {
     /*
      * Illegal padding in final program byte (malleability)
      */
-    let bytes = bit_encoding::Encoder::new()
-        .program_preamble(1)
+    let bytes = bit_encoding::Program::program_preamble(1)
         .unit()
         .witness_preamble(None)
-        .bits_be(u64::MAX, 1) // Illegal padding
-        .get_bytes()
+        .illegal_padding()
+        .bits_be(u64::MAX, 1)
+        .parser_stops_here()
         .unwrap();
 
     test_cases.push(TestCase::from_bytes(
@@ -519,10 +506,9 @@ fn main() {
      * Program root is hidden
      */
     let hidden_cmr = Cmr::from_byte_array([0; 32]);
-    let bytes = bit_encoding::Encoder::new()
-        .program_preamble(1)
+    let bytes = bit_encoding::Program::program_preamble(1)
         .hidden(hidden_cmr.as_ref())
-        .get_bytes()
+        .parser_stops_here()
         .unwrap_err()
         .unwrap_padding();
 
