@@ -165,6 +165,12 @@ impl Program {
             .positive_integer(right_offset)
     }
 
+    pub fn disconnect(self, left_offset: usize, right_offset: usize) -> Self {
+        self.bits_be(0b00011, 5)
+            .positive_integer(left_offset)
+            .positive_integer(right_offset)
+    }
+
     pub fn hidden(self, payload: &[u8]) -> Self {
         self.bits_be(0b0110, 4).bytes_be(payload)
     }
