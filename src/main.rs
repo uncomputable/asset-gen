@@ -585,37 +585,26 @@ fn main() {
     ));
 
     /*
-     * `case (drop iden) iden` fails the occurs check
+     * Infinite type is inferred
+     *
+     * drop iden: A × B -> B
+     * iden:      C     -> C
+     * case (drop iden) iden fails the occurs check
      */
-    let program_bytes = vec![0xc1, 0x07, 0x20, 0x30];
-    let commit = simplicity::Cmr::case(
-        simplicity::Cmr::drop(simplicity::Cmr::iden()),
-        simplicity::Cmr::iden(),
-    );
-
-    /*
-    use simplicity::jet::Core;
-    use simplicity::node::CoreConstructible;
-    use simplicity::WitnessNode;
-
-    // FIXME: Infinite loop in program finalization
-    // https://github.com/BlockstreamResearch/rust-simplicity/issues/177
-    let program = Arc::<WitnessNode<Core>>::case(
-        &Arc::<WitnessNode<Core>>::drop_(&Arc::<WitnessNode<Core>>::iden()),
-        &Arc::<WitnessNode<Core>>::iden(),
-    )
-    .expect("const")
-    .finalize()
-    .expect("const");
-
-    assert_eq!(program_bytes, program.encode_to_vec());
-    assert_eq!(commit, program.cmr());
-    */
+    let bytes = bit_encoding::Program::program_preamble(4)
+        .iden()
+        .drop(1)
+        .iden()
+        .case(2, 1)
+        .witness_preamble(None)
+        .program_finished()
+        .unwrap();
+    let cmr = Cmr::case(Cmr::drop(Cmr::iden()), Cmr::iden());
 
     test_cases.push(TestCase::new(
-        "type/occurs_check_failure",
-        program_bytes,
-        commit,
+        "type_inference_occurs_check/occurs_check",
+        bytes,
+        cmr,
         None,
         None,
         Some(ScriptError::SimplicityTypeInferenceOccursCheck),
