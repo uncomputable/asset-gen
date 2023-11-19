@@ -611,6 +611,51 @@ fn main() {
     ));
 
     /*
+     * Source of program root is not unit
+     *
+     * take unit: A × B -> 1
+     */
+    let bytes = bit_encoding::Program::program_preamble(2)
+        .unit()
+        .take(1)
+        .witness_preamble(None)
+        .program_finished()
+        .unwrap_err()
+        .unwrap_padding();
+    let cmr = Cmr::take(Cmr::unit());
+
+    test_cases.push(TestCase::new(
+        "type_inference_not_program/root_source_type",
+        bytes,
+        cmr,
+        None,
+        None,
+        Some(ScriptError::SimplicityTypeInferenceNotProgram),
+    ));
+
+    /*
+     * Target of program root is not unit
+     *
+     * pair unit unit: A -> 1 × 1
+     */
+    let bytes = bit_encoding::Program::program_preamble(2)
+        .unit()
+        .pair(1, 1)
+        .witness_preamble(None)
+        .program_finished()
+        .unwrap();
+    let cmr = Cmr::pair(Cmr::unit(), Cmr::unit());
+
+    test_cases.push(TestCase::new(
+        "type_inference_not_program/root_target_type",
+        bytes,
+        cmr,
+        None,
+        None,
+        Some(ScriptError::SimplicityTypeInferenceNotProgram),
+    ));
+
+    /*
      * Program exceeds consensus limit on number of cells (memory use):
      * `word("2^23 zero bits") ; unit`
      */
