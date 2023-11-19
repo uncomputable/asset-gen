@@ -143,8 +143,18 @@ impl Program {
         self.bits_be(0b01000, 5)
     }
 
+    pub fn take(self, left_offset: usize) -> Self {
+        self.bits_be(0b00110, 5).positive_integer(left_offset)
+    }
+
     pub fn comp(self, left_offset: usize, right_offset: usize) -> Self {
         self.bits_be(0b00000, 5)
+            .positive_integer(left_offset)
+            .positive_integer(right_offset)
+    }
+
+    pub fn pair(self, left_offset: usize, right_offset: usize) -> Self {
+        self.bits_be(0b00010, 5)
             .positive_integer(left_offset)
             .positive_integer(right_offset)
     }
