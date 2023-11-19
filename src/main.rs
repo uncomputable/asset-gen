@@ -360,9 +360,12 @@ fn main() {
     // Trailing byte
     bytes.push(0x00);
 
-    test_cases.push(TestCase::from_bytes(
+    test_cases.push(TestCase::new(
         "trailing_bytes/trailing_bytes",
         bytes,
+        Cmr::unit(),
+        None,
+        None,
         Some(ScriptError::SimplicityBitstreamUnusedBytes),
     ));
 
@@ -377,9 +380,12 @@ fn main() {
         .parser_stops_here()
         .unwrap();
 
-    test_cases.push(TestCase::from_bytes(
+    test_cases.push(TestCase::new(
         "illegal_padding/illegal_padding",
         bytes,
+        Cmr::unit(),
+        None,
+        None,
         Some(ScriptError::SimplicityBitstreamUnusedBits),
     ));
 

@@ -48,21 +48,47 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
 
 # `SCRIPT_ERR_SIMPLICITY_BITSTREAM_UNUSED_BYTES`
 
-- trailing bytes
+- trailing bytes after program encoding (program + witness block)
 
 # `SCRIPT_ERR_SIMPLICITY_BITSTREAM_UNUSED_BITS`
 
-- illegal padding
+- illegal padding in final byte of encoding
+- padding with bits other than zeroes
 
 # `SCRIPT_ERR_SIMPLICITY_TYPE_INFERENCE_UNIFICATION`
 
+```c
+#define UNIFY(a, b) { if (!unify((a), (b), bindings_used)) return SIMPLICITY_ERR_TYPE_INFERENCE_UNIFICATION; }
+```
 
+- types `a` and `b` are bound to two structurally different types
+  - 1 and X + Y
+  - 1 and X × Y
+  - Z + Y and U × V
+- therefore, `a` and `b` cannot be unified
+- comp combinator: left target = right source
+- pair combinator: left source = right source
+- case combinator: left target = right target
+
+```c
+#define APPLY_BINDING(a, b) { if (!applyBinding((a), (b), bindings_used)) return SIMPLICITY_ERR_TYPE_INFERENCE_UNIFICATION; }
+```
+
+- type `a` is bound to a type that is structurally different from the binding `b`
+- therefore, `a` cannot be bound to `b`
+- case combinator: left source = A × C (also assertl)
+- case combinator: right source = B × C (also assertr)
+- disconnect combinator: left source = 2^256 × A
+- disconnect combinator: left target = B × C
 
 # `SCRIPT_ERR_SIMPLICITY_TYPE_INFERENCE_OCCURS_CHECK`
 
+- type variable X is bound to a type that contains X
 
 # `SCRIPT_ERR_SIMPLICITY_TYPE_INFERENCE_NOT_PROGRAM`
 
+- program root doesn't have unit source type
+- program root doesn't have unit target type
 
 # `SCRIPT_ERR_SIMPLICITY_WITNESS_EOF`
 # `SCRIPT_ERR_SIMPLICITY_WITNESS_UNUSED_BITS`
