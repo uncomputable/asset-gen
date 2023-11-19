@@ -147,6 +147,10 @@ impl Program {
         self.bits_be(0b00110, 5).positive_integer(left_offset)
     }
 
+    pub fn drop(self, left_offset: usize) -> Self {
+        self.bits_be(0b00111, 5).positive_integer(left_offset)
+    }
+
     pub fn comp(self, left_offset: usize, right_offset: usize) -> Self {
         self.bits_be(0b00000, 5)
             .positive_integer(left_offset)
