@@ -353,6 +353,37 @@ fn main() {
     ));
 
     /*
+     * Trailing bytes after program encoding (malleability)
+     */
+    let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
+    let mut bytes = program.encode_to_vec();
+    // Trailing byte
+    bytes.push(0x00);
+
+    test_cases.push(TestCase::from_bytes(
+        "trailing_bytes/trailing_bytes",
+        bytes,
+        Some(ScriptError::SimplicityBitstreamUnusedBytes),
+    ));
+
+    /*
+     * Illegal padding in final program byte (malleability)
+     */
+    let bytes = bit_encoding::Program::program_preamble(1)
+        .unit()
+        .witness_preamble(None)
+        .illegal_padding()
+        .bits_be(u64::MAX, 1)
+        .parser_stops_here()
+        .unwrap();
+
+    test_cases.push(TestCase::from_bytes(
+        "illegal_padding/illegal_padding",
+        bytes,
+        Some(ScriptError::SimplicityBitstreamUnusedBits),
+    ));
+
+    /*
      * `case (drop iden) iden` fails the occurs check
      */
     let program_bytes = vec![0xc1, 0x07, 0x20, 0x30];
@@ -472,37 +503,6 @@ fn main() {
         s,
         &empty_witness,
         None,
-    ));
-
-    /*
-     * Trailing bytes after program encoding (malleability)
-     */
-    let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
-    let mut bytes = program.encode_to_vec();
-    // Trailing byte
-    bytes.push(0x00);
-
-    test_cases.push(TestCase::from_bytes(
-        "program/trailing_bytes",
-        bytes,
-        Some(ScriptError::SimplicityBitstreamUnusedBytes),
-    ));
-
-    /*
-     * Illegal padding in final program byte (malleability)
-     */
-    let bytes = bit_encoding::Program::program_preamble(1)
-        .unit()
-        .witness_preamble(None)
-        .illegal_padding()
-        .bits_be(u64::MAX, 1)
-        .parser_stops_here()
-        .unwrap();
-
-    test_cases.push(TestCase::from_bytes(
-        "program/illegal_padding",
-        bytes,
-        Some(ScriptError::SimplicityBitstreamUnusedBits),
     ));
 
     /*
