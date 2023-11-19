@@ -390,6 +390,92 @@ fn main() {
     ));
 
     /*
+     * Comp combinator: left target != right source
+     *
+     * unit:      A     -> 1
+     * take unit: 1 × B -> 1
+     * comp unit (take unit) fails to unify
+     */
+    let bytes = bit_encoding::Program::program_preamble(3)
+        .unit()
+        .take(1)
+        .comp(2, 1)
+        .witness_preamble(None)
+        .program_finished()
+        .unwrap();
+    let cmr = Cmr::comp(Cmr::unit(), Cmr::take(Cmr::unit()));
+
+    test_cases.push(TestCase::new(
+        "type_inference_unification/comp_unify_left_target_right_source",
+        bytes,
+        cmr,
+        None,
+        None,
+        Some(ScriptError::SimplicityTypeInferenceUnification),
+    ));
+
+    /*
+     * Pair combinator: left source != right source
+     *
+     * word(0):    1     -> 2 = 1 + 1
+     * take unit:  A × B -> 1
+     * pair word(0) (take unit) fails to unify
+     */
+    let value = Value::u1(0);
+    let bytes = bit_encoding::Program::program_preamble(4)
+        .word(1, &value)
+        .unit()
+        .take(1)
+        .pair(3, 1)
+        .witness_preamble(None)
+        .program_finished()
+        .unwrap_err()
+        .unwrap_padding();
+    let cmr = Cmr::pair(Cmr::const_word(&value), Cmr::take(Cmr::unit()));
+
+    test_cases.push(TestCase::new(
+        "type_inference_unification/pair_unify_left_source_right_source",
+        bytes,
+        cmr,
+        None,
+        None,
+        Some(ScriptError::SimplicityTypeInferenceUnification),
+    ));
+
+    /*
+     * Case combinator: left target != right target
+     *
+     * take word(0):  A × 1 -> 2^1
+     * take word(00): A × 1 -> 2^2
+     * case (take word(0)) (take word(00)) fails to unify
+     */
+    let small_value = Value::u1(0);
+    let large_value = Value::u2(0);
+    let bytes = bit_encoding::Program::program_preamble(5)
+        .word(1, &small_value)
+        .take(1)
+        .word(2, &large_value)
+        .take(1)
+        .case(3, 1)
+        .witness_preamble(None)
+        .program_finished()
+        .unwrap_err()
+        .unwrap_padding();
+    let cmr = Cmr::case(
+        Cmr::take(Cmr::const_word(&small_value)),
+        Cmr::take(Cmr::const_word(&large_value)),
+    );
+
+    test_cases.push(TestCase::new(
+        "type_inference_unification/case_unify_left_target_right_target",
+        bytes,
+        cmr,
+        None,
+        None,
+        Some(ScriptError::SimplicityTypeInferenceUnification),
+    ));
+
+    /*
      * `case (drop iden) iden` fails the occurs check
      */
     let program_bytes = vec![0xc1, 0x07, 0x20, 0x30];
