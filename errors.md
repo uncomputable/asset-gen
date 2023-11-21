@@ -6,18 +6,19 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
 if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCRIPT_ERR_SIMPLICITY_WRONG_LENGTH);
 ```
 
-- not exactly one script input (encoded Simplicity program + witness data)
-- script is not exactly 32 bytes (CMR)
+1. not exactly one script input (encoded Simplicity program + witness data)
+2. script is not exactly 32 bytes (CMR)
 
 # `SCRIPT_ERR_SIMPLICITY_BITSTREAM_EOF`
 
-- eof in middle of combinator
-- eof in middle of positive integer
-- eof in middle of witness block
+1. eof in middle of combinator
+2. eof in middle of positive integer
+3. eof in middle of witness block
 
 # `SCRIPT_ERR_SIMPLICITY_NOT_YET_IMPLEMENTED`
 
-- cannot be triggered
+- 2023-11-21: there is no occurrence of the error
+- the error cannot be triggered
 
 # `SCRIPT_ERR_SIMPLICITY_DATA_OUT_OF_RANGE`
 
@@ -25,38 +26,44 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
 #define DAG_LEN_MAX 8000000U
 ```
 
-- program is declared length > `DAG_LEN_MAX`
-- witness block is declared length >= 2^31
-- index points past beginning of program
+1. program is declared length > `DAG_LEN_MAX`
+2. witness block is declared length >= 2^31
+3. index points past beginning of program
     - relative index ix is greater than current absolute node index
     - relative indices cannot be zero because zero cannot be encoded!
-- jet is not defined
-- word depth > 32 (word longer than 2^31 bits)
+4. jet is not defined
+5. word depth > 32 (word longer than 2^31 bits)
 
 # `SCRIPT_ERR_SIMPLICITY_DATA_OUT_OF_ORDER`
 
-- program nodes not serialized in canonical order
+1. program nodes not serialized in canonical order
 
 # `SCRIPT_ERR_SIMPLICITY_FAIL_CODE`
 
-- fail node in program "01010" + entropy
+1. fail node in program "01010" + entropy
 
 # `SCRIPT_ERR_SIMPLICITY_STOP_CODE`
 
-- stop sequence in program bits "01011"
+1. stop sequence in program bits "01011"
 
 # `SCRIPT_ERR_SIMPLICITY_HIDDEN`
 
-- hidden node as child of node other than assert{l,r}
+1. node other than case has hidden child
+    - assert{l,r} are encoded as case
+2. case has two hidden children
 
 # `SCRIPT_ERR_SIMPLICITY_BITSTREAM_UNUSED_BYTES`
 
-- trailing bytes after program encoding (program + witness block)
+- will be renamed to `SCRIPT_ERR_SIMPLICITY_BITSTREAM_TRAILING_BYTES`
+
+1. trailing bytes after program encoding (program + witness block)
 
 # `SCRIPT_ERR_SIMPLICITY_BITSTREAM_UNUSED_BITS`
 
-- illegal padding in final byte of encoding
-- padding with bits other than zeroes
+- will be renamed to `SCRIPT_ERR_SIMPLICITY_BITSTREAM_ILLEGAL_PADDING`
+
+1. illegal padding in final byte of encoding
+    - padding with bits other than zeroes
 
 # `SCRIPT_ERR_SIMPLICITY_TYPE_INFERENCE_UNIFICATION`
 
@@ -69,9 +76,10 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
   - 1 and X × Y
   - Z + Y and U × V
 - therefore, `a` and `b` cannot be unified
-- comp combinator: left target = right source
-- pair combinator: left source = right source
-- case combinator: left target = right target
+
+1. comp combinator: left target = right source
+2. pair combinator: left source = right source
+3. case combinator: left target = right target
 
 ```c
 #define APPLY_BINDING(a, b) { if (!applyBinding((a), (b), bindings_used)) return SIMPLICITY_ERR_TYPE_INFERENCE_UNIFICATION; }
@@ -79,19 +87,20 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
 
 - type `a` is bound to a type that is structurally different from the binding `b`
 - therefore, `a` cannot be bound to `b`
-- case combinator: left source = A × C (also assertl)
-- case combinator: right source = B × C (also assertr)
-- disconnect combinator: left source = 2^256 × A
-- disconnect combinator: left target = B × C
+
+1. case combinator: left source = A × C (also assertl)
+2. case combinator: right source = B × C (also assertr)
+3. disconnect combinator: left source = 2^256 × A
+4. disconnect combinator: left target = B × C
 
 # `SCRIPT_ERR_SIMPLICITY_TYPE_INFERENCE_OCCURS_CHECK`
 
-- type variable X is bound to a type that contains X
+1. type variable X is bound to a type that contains X
 
 # `SCRIPT_ERR_SIMPLICITY_TYPE_INFERENCE_NOT_PROGRAM`
 
-- program root doesn't have unit source type
-- program root doesn't have unit target type
+1. program root doesn't have unit source type
+2. program root doesn't have unit target type
 
 # `SCRIPT_ERR_SIMPLICITY_WITNESS_EOF`
 # `SCRIPT_ERR_SIMPLICITY_WITNESS_UNUSED_BITS`
