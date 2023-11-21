@@ -143,6 +143,14 @@ impl Program {
         self.bits_be(0b01000, 5)
     }
 
+    pub fn injl(self, left_offset: usize) -> Self {
+        self.bits_be(0b00100, 5).positive_integer(left_offset)
+    }
+
+    pub fn injr(self, left_offset: usize) -> Self {
+        self.bits_be(0b00101, 5).positive_integer(left_offset)
+    }
+
     pub fn take(self, left_offset: usize) -> Self {
         self.bits_be(0b00110, 5).positive_integer(left_offset)
     }
@@ -193,6 +201,10 @@ impl Program {
 
     pub fn word(self, depth: usize, value: &Value) -> Self {
         self.bits_be(0b10, 2).positive_integer(depth).value(value)
+    }
+
+    pub fn witness(self) -> Self {
+        self.bits_be(0b0111, 4)
     }
 
     pub fn witness_preamble(self, len: Option<usize>) -> Witness {
