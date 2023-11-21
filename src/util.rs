@@ -4,9 +4,14 @@
 //!
 //! This lets us manipulate the spending process more freely and it lets us provoke errors.
 
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use elements::secp256k1_zkp;
 use elements_miniscript as miniscript;
 use miniscript::{bitcoin, elements};
+use simplicity::jet::Jet;
+use simplicity::RedeemNode;
 
 /// Nothing-up-my-sleeve point.
 ///
@@ -81,4 +86,15 @@ pub fn get_witness_stack(
     control_block: elements::taproot::ControlBlock,
 ) -> Vec<Vec<u8>> {
     vec![script_input, script.into_bytes(), control_block.serialize()]
+}
+
+pub fn program_from_string<J: Jet>(
+    s: &str,
+    witness: &HashMap<Arc<str>, Arc<simplicity::Value>>,
+) -> Result<Arc<RedeemNode<J>>, String> {
+    let forest = simplicity::human_encoding::Forest::parse(s).map_err(|e| e.to_string())?;
+    forest
+        .to_witness_node(witness)
+        .finalize()
+        .map_err(|e| e.to_string())
 }
