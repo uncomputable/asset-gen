@@ -715,6 +715,48 @@ fn main() {
     ));
 
     /*
+     * FIXME: Unknown jet?
+     */
+    let s = "
+        wit := witness
+        main := comp (comp wit jet_is_zero_64) jet_verify
+    ";
+    let mut witness = HashMap::new();
+    witness.insert(Arc::from("wit"), Value::u64(0u64));
+    let program = util::program_from_string::<Core>(s, &witness).unwrap();
+    let mut bytes = program.encode_to_vec();
+
+    test_cases.push(TestCase::new(
+        "data_out_of_range/fixme",
+        bytes,
+        program.cmr(),
+        None,
+        None,
+        Some(ScriptError::SimplicityDataOutOfRange),
+    ));
+
+    /*
+     * FIXME: EOF despite large-enough witness
+     */
+    let s = "
+        wit := witness
+        main := comp (comp wit jet_add_32) unit
+    ";
+    let mut witness = HashMap::new();
+    witness.insert(Arc::from("wit"), Value::u64(0u64));
+    let program = util::program_from_string::<Core>(s, &witness).unwrap();
+    let mut bytes = program.encode_to_vec();
+
+    test_cases.push(TestCase::new(
+        "bitstream_eof/fixme",
+        bytes,
+        program.cmr(),
+        None,
+        None,
+        Some(ScriptError::SimplicityBitstreamEof),
+    ));
+
+    /*
      * Program exceeds consensus limit on number of cells (memory use):
      * `word("2^23 zero bits") ; unit`
      */
