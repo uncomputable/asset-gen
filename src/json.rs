@@ -108,6 +108,7 @@ pub enum ScriptError {
     SimplicityExecJet,
     SimplicityExecAssert,
     SimplicityAntidos,
+    SimplicityHiddenRoot,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Default, Serialize, Deserialize)]
@@ -239,6 +240,7 @@ impl fmt::Display for ScriptError {
             ScriptError::SimplicityExecJet => f.write_str("SIMPLICITY_EXEC_JET"),
             ScriptError::SimplicityExecAssert => f.write_str("SIMPLICITY_EXEC_ASSERT"),
             ScriptError::SimplicityAntidos => f.write_str("SIMPLICITY_ANTIDOS"),
+            ScriptError::SimplicityHiddenRoot => f.write_str("SIMPLICITY_HIDDEN_ROOT"),
         }
     }
 }
@@ -334,6 +336,7 @@ impl FromStr for ScriptError {
             "SIMPLICITY_EXEC_JET" => Ok(ScriptError::SimplicityExecJet),
             "SIMPLICITY_EXEC_ASSERT" => Ok(ScriptError::SimplicityExecAssert),
             "SIMPLICITY_ANTIDOS" => Ok(ScriptError::SimplicityAntidos),
+            "SIMPLICITY_HIDDEN_ROOT" => Ok(ScriptError::SimplicityHiddenRoot),
             _ => Err("unknown error"),
         }
     }
