@@ -1,4 +1,4 @@
-# `SCRIPT_ERR_SIMPLICITY_WRONG_LENGTH`
+# `SCRIPT_ERR_SIMPLICITY_WRONG_LENGTH = 62`
 
 ```c++
 static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, const std::vector<unsigned char>& program, unsigned int flags, const BaseSignatureChecker& checker, ScriptError* serror, bool is_p2sh)
@@ -9,18 +9,18 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
 1. not exactly one script input (encoded Simplicity program + witness data)
 2. script is not exactly 32 bytes (CMR)
 
-# `SCRIPT_ERR_SIMPLICITY_BITSTREAM_EOF`
+# `SCRIPT_ERR_SIMPLICITY_BITSTREAM_EOF = 63`
 
 1. eof in middle of combinator
 2. eof in middle of positive integer
 3. eof in middle of witness block
 
-# `SCRIPT_ERR_SIMPLICITY_NOT_YET_IMPLEMENTED`
+# `SCRIPT_ERR_SIMPLICITY_NOT_YET_IMPLEMENTED = 64`
 
 - 2023-11-21: there is no occurrence of the error
 - the error cannot be triggered
 
-# `SCRIPT_ERR_SIMPLICITY_DATA_OUT_OF_RANGE`
+# `SCRIPT_ERR_SIMPLICITY_DATA_OUT_OF_RANGE = 65`
 
 ```c++
 #define DAG_LEN_MAX 8000000U
@@ -34,38 +34,38 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
 4. jet is not defined
 5. word depth > 32 (word longer than 2^31 bits)
 
-# `SCRIPT_ERR_SIMPLICITY_DATA_OUT_OF_ORDER`
+# `SCRIPT_ERR_SIMPLICITY_DATA_OUT_OF_ORDER = 66`
 
 1. program nodes not serialized in canonical order
 
-# `SCRIPT_ERR_SIMPLICITY_FAIL_CODE`
+# `SCRIPT_ERR_SIMPLICITY_FAIL_CODE = 67`
 
 1. fail node in program "01010" + entropy
 
-# `SCRIPT_ERR_SIMPLICITY_STOP_CODE`
+# `SCRIPT_ERR_SIMPLICITY_STOP_CODE = 68`
 
 1. stop sequence in program bits "01011"
 
-# `SCRIPT_ERR_SIMPLICITY_HIDDEN`
+# `SCRIPT_ERR_SIMPLICITY_HIDDEN = 69`
 
 1. node other than case has hidden child
     - assert{l,r} are encoded as case
 2. case has two hidden children
 
-# `SCRIPT_ERR_SIMPLICITY_BITSTREAM_UNUSED_BYTES`
+# `SCRIPT_ERR_SIMPLICITY_BITSTREAM_UNUSED_BYTES = 70`
 
 - will be renamed to `SCRIPT_ERR_SIMPLICITY_BITSTREAM_TRAILING_BYTES`
 
 1. trailing bytes after program encoding (program + witness block)
 
-# `SCRIPT_ERR_SIMPLICITY_BITSTREAM_UNUSED_BITS`
+# `SCRIPT_ERR_SIMPLICITY_BITSTREAM_UNUSED_BITS = 71`
 
 - will be renamed to `SCRIPT_ERR_SIMPLICITY_BITSTREAM_ILLEGAL_PADDING`
 
 1. illegal padding in final byte of encoding
     - padding with bits other than zeroes
 
-# `SCRIPT_ERR_SIMPLICITY_TYPE_INFERENCE_UNIFICATION`
+# `SCRIPT_ERR_SIMPLICITY_TYPE_INFERENCE_UNIFICATION = 72`
 
 ```c
 #define UNIFY(a, b) { if (!unify((a), (b), bindings_used)) return SIMPLICITY_ERR_TYPE_INFERENCE_UNIFICATION; }
@@ -93,16 +93,16 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
 3. disconnect combinator: left source = 2^256 × A
 4. disconnect combinator: left target = B × C
 
-# `SCRIPT_ERR_SIMPLICITY_TYPE_INFERENCE_OCCURS_CHECK`
+# `SCRIPT_ERR_SIMPLICITY_TYPE_INFERENCE_OCCURS_CHECK = 73`
 
 1. type variable X is bound to a type that contains X
 
-# `SCRIPT_ERR_SIMPLICITY_TYPE_INFERENCE_NOT_PROGRAM`
+# `SCRIPT_ERR_SIMPLICITY_TYPE_INFERENCE_NOT_PROGRAM = 74`
 
 1. program root doesn't have unit source type
 2. program root doesn't have unit target type
 
-# `SCRIPT_ERR_SIMPLICITY_WITNESS_EOF`
+# `SCRIPT_ERR_SIMPLICITY_WITNESS_EOF = 75`
 
 1. attempt to parse the next witness value of nontrivial type (bitsize > 0), but there are no more bits in the witness block
     - eof at value border
@@ -110,13 +110,14 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
     - this happens while recursively parsing a witness value
     - eof inside value
 
-# `SCRIPT_ERR_SIMPLICITY_WITNESS_UNUSED_BITS`
+# `SCRIPT_ERR_SIMPLICITY_WITNESS_UNUSED_BITS = 76`
 
 - will be renamed to `SIMPLICITY_ERR_WITNESS_TRAILING_BITS`
 
 1. trailing bits after final value of witness block
+    - witness block declared too long
 
-# `SCRIPT_ERR_SIMPLICITY_UNSHARED_SUBEXPRESSION`
+# `SCRIPT_ERR_SIMPLICITY_UNSHARED_SUBEXPRESSION = 77`
 
 - sharing is not maximal
 
@@ -127,7 +128,7 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
     - this is the "second-pass" IMR
     - the "first-pass" IMR is updated with the TMR of the source and target type
 
-# `SCRIPT_ERR_SIMPLICITY_CMR`
+# `SCRIPT_ERR_SIMPLICITY_CMR = 78`
 
 - CMR mismatch inside taproot witness:
     - `[script_input, script, control_block (, annex)]` in Taproot speak
@@ -137,7 +138,7 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
 
 - `SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH` fires if CMR in taproot output differs from literal CMR in taproot witness
 
-# `SCRIPT_ERR_SIMPLICITY_AMR`
+# `SCRIPT_ERR_SIMPLICITY_AMR = 79`
 
 ```c++
 extern bool elements_simplicity_execSimplicity( simplicity_err* error, unsigned char* imr
@@ -157,13 +158,13 @@ if (!elements_simplicity_execSimplicity(&error, 0, txdata->m_simplicity_tx_data,
 - 2023-11-21: Elements calls `elements_simplicity_execSimplicity` with `amr = NULL`
 - the error cannot be triggered
 
-# `SCRIPT_ERR_SIMPLICITY_EXEC_BUDGET`
-# `SCRIPT_ERR_SIMPLICITY_EXEC_MEMORY`
-# `SCRIPT_ERR_SIMPLICITY_EXEC_JET`
-# `SCRIPT_ERR_SIMPLICITY_EXEC_ASSERT`
-# `SCRIPT_ERR_SIMPLICITY_ANTIDOS`
+# `SCRIPT_ERR_SIMPLICITY_EXEC_BUDGET = 80`
+# `SCRIPT_ERR_SIMPLICITY_EXEC_MEMORY = 81`
+# `SCRIPT_ERR_SIMPLICITY_EXEC_JET = 82`
+# `SCRIPT_ERR_SIMPLICITY_EXEC_ASSERT = 83`
+# `SCRIPT_ERR_SIMPLICITY_ANTIDOS = 84`
 
-# `SCRIPT_ERR_SIMPLICITY_HIDDEN_ROOT`
+# `SCRIPT_ERR_SIMPLICITY_HIDDEN_ROOT = 85`
 
 - program root is hidden node
 
