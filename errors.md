@@ -1,6 +1,6 @@
 # `SCRIPT_ERR_SIMPLICITY_WRONG_LENGTH`
 
-```
+```c++
 static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, const std::vector<unsigned char>& program, unsigned int flags, const BaseSignatureChecker& checker, ScriptError* serror, bool is_p2sh)
 ...
 if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCRIPT_ERR_SIMPLICITY_WRONG_LENGTH);
@@ -21,8 +21,11 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
 
 # `SCRIPT_ERR_SIMPLICITY_DATA_OUT_OF_RANGE`
 
+```c++
+#define DAG_LEN_MAX 8000000U
+```
+
 - program is declared length > `DAG_LEN_MAX`
-    - `#define DAG_LEN_MAX 8000000U`
 - witness block is declared length >= 2^31
 - index points past beginning of program
     - relative index ix is greater than current absolute node index
@@ -131,7 +134,6 @@ SCRIPT_ERR_SIMPLICITY_EXEC_MEMORY = 81
 SCRIPT_ERR_SIMPLICITY_EXEC_JET = 82
 SCRIPT_ERR_SIMPLICITY_EXEC_ASSERT = 83
 SCRIPT_ERR_SIMPLICITY_ANTIDOS = 84
-SCRIPT_ERR_ERROR_COUNT = 85
 ```
 
 # Bitcoin + Elements error codes
@@ -199,4 +201,10 @@ SCRIPT_ERR_INTROSPECT_INDEX_OUT_OF_BOUNDS = 58
 SCRIPT_ERR_EXPECTED_8BYTES = 59
 SCRIPT_ERR_ARITHMETIC64 = 60
 SCRIPT_ERR_ECMULTVERIFYFAIL = 61
+```
+
+# Error count (meta error)
+
+```c++
+SCRIPT_ERR_ERROR_COUNT = 85
 ```
