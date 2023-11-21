@@ -756,8 +756,7 @@ fn main() {
         hidden_cmr,
         None,
         None,
-        // FIXME: Change to ScriptError::SimplicityHiddenRoot once Elements supports it
-        Some(ScriptError::UnknownError),
+        Some(ScriptError::SimplicityHiddenRoot),
     ));
 
     /*
