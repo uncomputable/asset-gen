@@ -776,6 +776,27 @@ fn main() {
     ));
 
     /*
+     * Witness block declared too long
+     */
+    let bytes = bit_encoding::Program::program_preamble(1)
+        .unit()
+        .witness_preamble(Some(1))
+        .bits_be(u64::MAX, 1)
+        .program_finished()
+        .unwrap_err()
+        .unwrap_padding();
+    let cmr = Cmr::unit();
+
+    test_cases.push(TestCase::new(
+        "witness_trailing_bits/trailing_bits",
+        bytes,
+        cmr,
+        None,
+        None,
+        Some(ScriptError::SimplicityWitnessUnusedBits),
+    ));
+
+    /*
      * Program exceeds consensus limit on number of cells (memory use):
      * `word("2^23 zero bits") ; unit`
      */
