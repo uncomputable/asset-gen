@@ -11,9 +11,19 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
 
 # `SCRIPT_ERR_SIMPLICITY_BITSTREAM_EOF = 63`
 
-1. eof in middle of combinator
-2. eof in middle of positive integer
-3. eof in middle of witness block
+- attempted to read bits from bitstream, but reached the end
+
+1. unfinished combinator
+    - error in `readNBits`
+2. unfinished jet
+    - error in `decodeJet`
+3. word declared longer than it actually is
+    - error in `readBitstring`
+4. positive integer declared longer than it actually is
+    - error in `decodeUptoMaxInt`
+5. witness block declared longer than it actually is
+    - error in `decodeWitnessData`
+    - failure to read bitstring from bitstream
 
 # `SCRIPT_ERR_SIMPLICITY_NOT_YET_IMPLEMENTED = 64`
 
@@ -104,15 +114,18 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
 
 # `SCRIPT_ERR_SIMPLICITY_WITNESS_EOF = 75`
 
-1. attempt to parse the next witness value of nontrivial type (bitsize > 0), but there are no more bits in the witness block
+- attempted to read bits from bitstring, but reached the end
+- error in `fillWitnessData`
+
+1. parse next witness value (bit size > 0), but bitstream is EOF
     - eof at value border
-2. attempt to parse a sum value but there are no more bits in the witness block
-    - this happens while recursively parsing a witness value
+2. parse next bit of witness value, but bitstream if EOF
     - eof inside value
 
 # `SCRIPT_ERR_SIMPLICITY_WITNESS_UNUSED_BITS = 76`
 
 - will be renamed to `SIMPLICITY_ERR_WITNESS_TRAILING_BITS`
+- error in `fillWitnessData`
 
 1. trailing bits after final value of witness block
     - witness block declared too long
