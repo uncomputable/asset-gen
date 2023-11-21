@@ -45,11 +45,12 @@ fn main() {
      * The taproot witness stack must have exactly 3 elements
      */
     let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
+    let extra_script_inputs = vec![vec![0x00]];
     test_cases.push(TestCase::new(
         "wrong_length/extra_script_input",
         program.encode_to_vec(),
         program.cmr(),
-        Some(vec![vec![0x00]]),
+        Some(extra_script_inputs),
         None,
         Some(ScriptError::SimplicityWrongLength),
     ));
@@ -58,19 +59,21 @@ fn main() {
      * The CMR (taproot witness script) must be exactly 32 bytes
      */
     let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
+    let long_cmr = &[0; 33];
     test_cases.push(TestCase::new(
         "wrong_length/extra_cmr_byte",
         program.encode_to_vec(),
-        &[0x00; 33],
+        long_cmr,
         None,
         None,
         Some(ScriptError::SimplicityWrongLength),
     ));
 
+    let short_cmr = &[0; 31];
     test_cases.push(TestCase::new(
         "wrong_length/missing_cmr_byte",
         program.encode_to_vec(),
-        &[0x00; 31],
+        short_cmr,
         None,
         None,
         Some(ScriptError::SimplicityWrongLength),
@@ -84,11 +87,12 @@ fn main() {
         .parser_stops_here()
         .unwrap_err()
         .expect_padding(6);
+    let cmr = &[0; 32];
 
     test_cases.push(TestCase::new(
         "bitstream_eof/program_length_eof",
         bytes,
-        &[0; 32],
+        cmr,
         None,
         None,
         Some(ScriptError::SimplicityBitstreamEof),
@@ -104,11 +108,12 @@ fn main() {
         .delete_bits(2 + 1 + 3) // Delete bits to reach byte boundary
         .parser_stops_here()
         .unwrap();
+    let cmr = Cmr::case(Cmr::unit(), Cmr::iden());
 
     test_cases.push(TestCase::new(
         "bitstream_eof/combinator_eof",
         bytes,
-        Cmr::case(Cmr::unit(), Cmr::iden()),
+        cmr,
         None,
         None,
         Some(ScriptError::SimplicityBitstreamEof),
@@ -123,11 +128,12 @@ fn main() {
         .bits_be(u64::default(), 0) // No bits means we declared too many
         .parser_stops_here()
         .unwrap();
+    let cmr = Cmr::unit();
 
     test_cases.push(TestCase::new(
         "bitstream_eof/witness_eof",
         bytes,
-        Cmr::unit(),
+        cmr,
         None,
         None,
         Some(ScriptError::SimplicityBitstreamEof),
@@ -143,11 +149,12 @@ fn main() {
         .parser_stops_here()
         .unwrap_err()
         .unwrap_padding();
+    let cmr = Cmr::unit();
 
     test_cases.push(TestCase::new(
         "bitstream_eof/witness_eof_c_test_vector",
         bytes,
-        Cmr::unit(),
+        cmr,
         None,
         None,
         Some(ScriptError::SimplicityBitstreamEof),
@@ -161,11 +168,12 @@ fn main() {
         .parser_stops_here()
         .unwrap_err()
         .unwrap_padding();
+    let cmr = &[0; 32];
 
     test_cases.push(TestCase::new(
         "data_out_of_range/program_length",
         bytes,
-        &[0; 32],
+        cmr,
         None,
         None,
         Some(ScriptError::SimplicityDataOutOfRange),
@@ -180,11 +188,12 @@ fn main() {
         .parser_stops_here()
         .unwrap_err()
         .unwrap_padding();
+    let cmr = Cmr::unit();
 
     test_cases.push(TestCase::new(
         "data_out_of_range/witness_length",
         bytes,
-        Cmr::unit(),
+        cmr,
         None,
         None,
         Some(ScriptError::SimplicityDataOutOfRange),
@@ -200,11 +209,12 @@ fn main() {
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
+    let cmr = Cmr::comp(Cmr::unit(), Cmr::unit());
 
     test_cases.push(TestCase::new(
         "data_out_of_range/relative_combinator_index",
         bytes,
-        Cmr::comp(Cmr::unit(), Cmr::unit()),
+        cmr,
         None,
         None,
         Some(ScriptError::SimplicityDataOutOfRange),
@@ -219,11 +229,12 @@ fn main() {
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
+    let cmr = &[0; 32];
 
     test_cases.push(TestCase::new(
         "data_out_of_range/undefined_jet",
         bytes,
-        &[0; 32],
+        cmr,
         None,
         None,
         Some(ScriptError::SimplicityDataOutOfRange),
@@ -239,11 +250,12 @@ fn main() {
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
+    let cmr = Cmr::const_word(&value);
 
     test_cases.push(TestCase::new(
         "data_out_of_range/word_depth",
         bytes,
-        Cmr::const_word(&value),
+        cmr,
         None,
         None,
         Some(ScriptError::SimplicityDataOutOfRange),
@@ -260,11 +272,12 @@ fn main() {
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
+    let cmr = Cmr::comp(Cmr::unit(), Cmr::iden());
 
     test_cases.push(TestCase::new(
         "data_out_of_order/not_in_canonical_order",
         bytes,
-        Cmr::comp(Cmr::unit(), Cmr::iden()),
+        cmr,
         None,
         None,
         Some(ScriptError::SimplicityDataOutOfOrder),
@@ -280,11 +293,12 @@ fn main() {
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
+    let cmr = Cmr::fail(entropy);
 
     test_cases.push(TestCase::new(
         "fail_code/fail_node",
         bytes,
-        Cmr::fail(entropy),
+        cmr,
         None,
         None,
         Some(ScriptError::SimplicityFailCode),
@@ -298,11 +312,12 @@ fn main() {
         .parser_stops_here()
         .unwrap_err()
         .unwrap_padding();
+    let cmr = &[0; 32];
 
     test_cases.push(TestCase::new(
         "stop_code/stop_code",
         bytes,
-        &[0; 32],
+        cmr,
         None,
         None,
         Some(ScriptError::SimplicityStopCode),
@@ -320,11 +335,12 @@ fn main() {
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
+    let cmr = Cmr::comp(hidden_cmr, Cmr::unit());
 
     test_cases.push(TestCase::new(
         "hidden/comp_hidden_child",
         bytes,
-        Cmr::comp(hidden_cmr, Cmr::unit()),
+        cmr,
         None,
         None,
         Some(ScriptError::SimplicityHidden),
@@ -342,11 +358,12 @@ fn main() {
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
+    let cmr = Cmr::case(hidden_cmr, hidden_cmr);
 
     test_cases.push(TestCase::new(
         "hidden/two_hidden_children",
         bytes,
-        Cmr::case(hidden_cmr, hidden_cmr),
+        cmr,
         None,
         None,
         Some(ScriptError::SimplicityHidden),
@@ -359,11 +376,12 @@ fn main() {
     let mut bytes = program.encode_to_vec();
     // Trailing byte
     bytes.push(0x00);
+    let cmr = Cmr::unit();
 
     test_cases.push(TestCase::new(
         "trailing_bytes/trailing_bytes",
         bytes,
-        Cmr::unit(),
+        cmr,
         None,
         None,
         Some(ScriptError::SimplicityBitstreamUnusedBytes),
@@ -379,11 +397,12 @@ fn main() {
         .bits_be(u64::MAX, 1)
         .parser_stops_here()
         .unwrap();
+    let cmr = Cmr::unit();
 
     test_cases.push(TestCase::new(
         "illegal_padding/illegal_padding",
         bytes,
-        Cmr::unit(),
+        cmr,
         None,
         None,
         Some(ScriptError::SimplicityBitstreamUnusedBits),
