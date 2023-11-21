@@ -24,7 +24,7 @@ fn main() {
      */
     let s = "main := unit";
     test_cases.push(TestCase::from_string(
-        "unit_anyonecanspend",
+        "ok/unit",
         s,
         &empty_witness,
         None,
@@ -35,7 +35,7 @@ fn main() {
      */
     let s = "main := iden";
     test_cases.push(TestCase::from_string(
-        "iden_anyonecanspend",
+        "ok/iden",
         s,
         &empty_witness,
         None,
@@ -379,7 +379,7 @@ fn main() {
     let cmr = Cmr::unit();
 
     test_cases.push(TestCase::new(
-        "trailing_bytes/trailing_bytes",
+        "bitstream_trailing_bytes/trailing_bytes",
         bytes,
         cmr,
         None,
@@ -400,7 +400,7 @@ fn main() {
     let cmr = Cmr::unit();
 
     test_cases.push(TestCase::new(
-        "illegal_padding/illegal_padding",
+        "bitstream_illegal_padding/illegal_padding",
         bytes,
         cmr,
         None,
