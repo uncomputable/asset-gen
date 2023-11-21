@@ -103,10 +103,60 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
 2. program root doesn't have unit target type
 
 # `SCRIPT_ERR_SIMPLICITY_WITNESS_EOF`
+
+1. attempt to parse the next witness value of nontrivial type (bitsize > 0), but there are no more bits in the witness block
+    - eof at value border
+2. attempt to parse a sum value but there are no more bits in the witness block
+    - this happens while recursively parsing a witness value
+    - eof inside value
+
 # `SCRIPT_ERR_SIMPLICITY_WITNESS_UNUSED_BITS`
+
+- will be renamed to `SIMPLICITY_ERR_WITNESS_TRAILING_BITS`
+
+1. trailing bits after final value of witness block
+
 # `SCRIPT_ERR_SIMPLICITY_UNSHARED_SUBEXPRESSION`
+
+- sharing is not maximal
+
+1. two hidden nodes have the same payload
+    - by definition of the IMR, this is a special case of 2.
+    - it still makes sense to treat 1. separately
+2. two nodes have the same IMR
+    - this is the "second-pass" IMR
+    - the "first-pass" IMR is updated with the TMR of the source and target type
+
 # `SCRIPT_ERR_SIMPLICITY_CMR`
+
+- CMR mismatch inside taproot witness:
+    - `[script_input, script, control_block (, annex)]` in Taproot speak
+    - `[program, cmr, control_block (, annex)]` in Simplicity speak
+
+1. CMR of parsed Simplicity program (taproot witness script input) differs from literal CMR (taproot witness script)
+
+- `SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH` fires if CMR in taproot output differs from literal CMR in taproot witness
+
 # `SCRIPT_ERR_SIMPLICITY_AMR`
+
+```c++
+extern bool elements_simplicity_execSimplicity( simplicity_err* error, unsigned char* imr
+                                              , const transaction* tx, uint_fast32_t ix, const tapEnv* taproot
+                                              , const unsigned char* genesisBlockHash
+                                              , int64_t budget
+                                              , const unsigned char* amr
+                                              , const unsigned char* program, size_t program_len)
+```
+
+- the error only occurs in `elements_simplicity_execSimplicity` if `amr != NULL`
+
+```c++
+if (!elements_simplicity_execSimplicity(&error, 0, txdata->m_simplicity_tx_data, nIn, simplicityTapEnv, txdata->m_hash_genesis_block.data(), budget, 0, witness.data(), witness.size())) {
+```
+
+- 2023-11-21: Elements calls `elements_simplicity_execSimplicity` with `amr = NULL`
+- the error cannot be triggered
+
 # `SCRIPT_ERR_SIMPLICITY_EXEC_BUDGET`
 # `SCRIPT_ERR_SIMPLICITY_EXEC_MEMORY`
 # `SCRIPT_ERR_SIMPLICITY_EXEC_JET`
