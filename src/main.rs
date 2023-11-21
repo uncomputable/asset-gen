@@ -9,7 +9,7 @@ use std::io::Write;
 use std::sync::Arc;
 
 use simplicity::jet::Core;
-use simplicity::node::CoreConstructible;
+use simplicity::node::{CoreConstructible, WitnessConstructible};
 use simplicity::{Cmr, FailEntropy, Value, WitnessNode};
 
 use crate::bit_encoding::Builder;
@@ -653,6 +653,65 @@ fn main() {
         None,
         None,
         Some(ScriptError::SimplicityTypeInferenceNotProgram),
+    ));
+
+    /*
+     * Parse next witness value, but bitstring is EOF
+     */
+    let bytes = bit_encoding::Program::program_preamble(5)
+        .witness() // 1 → (1 + 1) * 1 means bit size = 1
+        .unit()
+        .take(1)
+        .case(1, 1)
+        .comp(4, 1)
+        .witness_preamble(None) // bitstring: []
+        .parser_stops_here()
+        .unwrap_err()
+        .unwrap_padding();
+    let cmr = Cmr::comp(
+        Cmr::witness(),
+        Cmr::case(Cmr::take(Cmr::unit()), Cmr::take(Cmr::unit())),
+    );
+
+    test_cases.push(TestCase::new(
+        "witness_eof/next_value",
+        bytes,
+        cmr,
+        None,
+        None,
+        Some(ScriptError::SimplicityWitnessEof),
+    ));
+
+    /*
+     * Parse next bit of witness value, but bitstring is EOF
+     */
+    let bytes = bit_encoding::Program::program_preamble(6)
+        .witness() // 1 → ((1 + 1) + (1 + 1)) × 1 means bit size = 2
+        .unit()
+        .take(1)
+        .case(1, 1)
+        .case(1, 1)
+        .comp(5, 1)
+        .witness_preamble(Some(1)) // bitstring: [1]
+        .bits_be(u64::MAX, 1)
+        .parser_stops_here()
+        .unwrap_err()
+        .unwrap_padding();
+    let cmr = Cmr::comp(
+        Cmr::witness(),
+        Cmr::case(
+            Cmr::case(Cmr::take(Cmr::unit()), Cmr::take(Cmr::unit())),
+            Cmr::case(Cmr::take(Cmr::unit()), Cmr::take(Cmr::unit())),
+        ),
+    );
+
+    test_cases.push(TestCase::new(
+        "witness_eof/next_bit",
+        bytes,
+        cmr,
+        None,
+        None,
+        Some(ScriptError::SimplicityWitnessEof),
     ));
 
     /*
