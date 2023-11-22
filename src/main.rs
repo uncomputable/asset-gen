@@ -114,7 +114,7 @@ fn main() {
      */
     let bytes = bit_encoding::Program::program_preamble(1)
         .unit()
-        .witness_preamble(Some(1))
+        .witness_preamble(1)
         .bits_be(u64::default(), 0) // No bits means we declared too many
         .parser_stops_here()
         .unwrap();
@@ -131,7 +131,7 @@ fn main() {
      */
     let bytes = bit_encoding::Program::program_preamble(1)
         .unit()
-        .witness_preamble(Some((1 << 31) - 1))
+        .witness_preamble((1 << 31) - 1)
         .bits_be(u64::default(), 0) // No bits means we declared too many
         .parser_stops_here()
         .unwrap_err()
@@ -164,7 +164,7 @@ fn main() {
      */
     let bytes = bit_encoding::Program::program_preamble(1)
         .unit()
-        .witness_preamble(Some(1 << 31))
+        .witness_preamble(1 << 31)
         .parser_stops_here()
         .unwrap_err()
         .unwrap_padding();
@@ -182,7 +182,7 @@ fn main() {
     let bytes = bit_encoding::Program::program_preamble(2)
         .unit()
         .comp(2, 1) // Left child does not exist
-        .witness_preamble(None)
+        .witness_preamble(0)
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
@@ -199,7 +199,7 @@ fn main() {
      */
     let bytes = bit_encoding::Program::program_preamble(1)
         .jet(u64::MAX, 64) // It is unlikely that all-ones will become a jet soon
-        .witness_preamble(None)
+        .witness_preamble(0)
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
@@ -216,7 +216,7 @@ fn main() {
     let value = Value::u1(0);
     let bytes = bit_encoding::Program::program_preamble(1)
         .word(33, &value)
-        .witness_preamble(None)
+        .witness_preamble(0)
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
@@ -235,7 +235,7 @@ fn main() {
         .unit()
         .iden()
         .comp(1, 2)
-        .witness_preamble(None)
+        .witness_preamble(0)
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
@@ -253,7 +253,7 @@ fn main() {
     let entropy = FailEntropy::from_byte_array([0; 64]);
     let bytes = bit_encoding::Program::program_preamble(1)
         .fail(entropy.as_ref())
-        .witness_preamble(None)
+        .witness_preamble(0)
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
@@ -288,7 +288,7 @@ fn main() {
         .hidden(hidden_cmr.as_ref())
         .unit()
         .comp(2, 1)
-        .witness_preamble(None)
+        .witness_preamble(0)
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
@@ -308,7 +308,7 @@ fn main() {
         .hidden(hidden_cmr.as_ref())
         .hidden(hidden_cmr.as_ref())
         .case(2, 1)
-        .witness_preamble(None)
+        .witness_preamble(0)
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
@@ -340,7 +340,7 @@ fn main() {
      */
     let bytes = bit_encoding::Program::program_preamble(1)
         .unit()
-        .witness_preamble(None)
+        .witness_preamble(0)
         .illegal_padding()
         .bits_be(u64::MAX, 1)
         .parser_stops_here()
@@ -364,7 +364,7 @@ fn main() {
         .unit()
         .take(1)
         .comp(2, 1)
-        .witness_preamble(None)
+        .witness_preamble(0)
         .program_finished()
         .unwrap();
     let cmr = Cmr::comp(Cmr::unit(), Cmr::take(Cmr::unit()));
@@ -389,7 +389,7 @@ fn main() {
         .unit()
         .take(1)
         .pair(3, 1)
-        .witness_preamble(None)
+        .witness_preamble(0)
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
@@ -417,7 +417,7 @@ fn main() {
         .word(2, &large_value)
         .take(1)
         .case(3, 1)
-        .witness_preamble(None)
+        .witness_preamble(0)
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
@@ -446,7 +446,7 @@ fn main() {
         .unit()
         .take(1)
         .case(3, 1)
-        .witness_preamble(None)
+        .witness_preamble(0)
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
@@ -471,7 +471,7 @@ fn main() {
         .take(1)
         .word(1, &value)
         .case(2, 1)
-        .witness_preamble(None)
+        .witness_preamble(0)
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
@@ -495,7 +495,7 @@ fn main() {
         .word(1, &value)
         .iden()
         .disconnect(2, 1)
-        .witness_preamble(None)
+        .witness_preamble(0)
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
@@ -518,7 +518,7 @@ fn main() {
         .unit()
         .iden()
         .disconnect(2, 1)
-        .witness_preamble(None)
+        .witness_preamble(0)
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
@@ -542,7 +542,7 @@ fn main() {
         .drop(1)
         .iden()
         .case(2, 1)
-        .witness_preamble(None)
+        .witness_preamble(0)
         .program_finished()
         .unwrap();
     let cmr = Cmr::case(Cmr::drop(Cmr::iden()), Cmr::iden());
@@ -561,7 +561,7 @@ fn main() {
     let bytes = bit_encoding::Program::program_preamble(2)
         .unit()
         .take(1)
-        .witness_preamble(None)
+        .witness_preamble(0)
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
@@ -581,7 +581,7 @@ fn main() {
     let bytes = bit_encoding::Program::program_preamble(2)
         .unit()
         .pair(1, 1)
-        .witness_preamble(None)
+        .witness_preamble(0)
         .program_finished()
         .unwrap();
     let cmr = Cmr::pair(Cmr::unit(), Cmr::unit());
@@ -601,7 +601,7 @@ fn main() {
         .take(1)
         .case(1, 1)
         .comp(4, 1)
-        .witness_preamble(None) // bitstring: []
+        .witness_preamble(0) // bitstring: []
         .parser_stops_here()
         .unwrap_err()
         .unwrap_padding();
@@ -626,7 +626,7 @@ fn main() {
         .case(1, 1)
         .case(1, 1)
         .comp(5, 1)
-        .witness_preamble(Some(1)) // bitstring: [1]
+        .witness_preamble(1) // bitstring: [1]
         .bits_be(u64::MAX, 1)
         .parser_stops_here()
         .unwrap_err()
@@ -650,7 +650,7 @@ fn main() {
      */
     let bytes = bit_encoding::Program::program_preamble(1)
         .unit()
-        .witness_preamble(Some(1))
+        .witness_preamble(1)
         .bits_be(u64::MAX, 1)
         .program_finished()
         .unwrap_err()
@@ -701,7 +701,7 @@ fn main() {
             .case(3, 1) // (1 + 1) × 1 → 1
             .comp(9, 1) // 1 → 1
             .comp(6, 1) // 1 → 1
-            .witness_preamble(None)
+            .witness_preamble(0)
             .program_finished()
             .unwrap_err()
             .unwrap_padding();

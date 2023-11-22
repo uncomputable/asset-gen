@@ -207,10 +207,10 @@ impl Program {
         self.bits_be(0b0111, 4)
     }
 
-    pub fn witness_preamble(self, len: Option<usize>) -> Witness {
+    pub fn witness_preamble(self, len: usize) -> Witness {
         let program = match len {
-            None => self.bits_be(0b0, 1),
-            Some(len) => self.bits_be(0b1, 1).positive_integer(len),
+            0 => self.bits_be(0b0, 1),
+            _ => self.bits_be(0b1, 1).positive_integer(len),
         };
 
         Witness {
