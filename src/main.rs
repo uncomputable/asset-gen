@@ -26,23 +26,13 @@ fn main() {
      * `unit` is an ANYONECANSPEND
      */
     let s = "main := unit";
-    test_cases.push(TestCase::from_string(
-        "ok/unit",
-        s,
-        &empty_witness,
-        None,
-    ));
+    test_cases.push(TestCase::from_string("ok/unit", s, &empty_witness, None));
 
     /*
      * `iden` is an ANYONECANSPEND
      */
     let s = "main := iden";
-    test_cases.push(TestCase::from_string(
-        "ok/iden",
-        s,
-        &empty_witness,
-        None,
-    ));
+    test_cases.push(TestCase::from_string("ok/iden", s, &empty_witness, None));
 
     /*
      * The taproot witness stack must have exactly 3 elements
