@@ -81,11 +81,14 @@ pub fn get_control_block<A: AsRef<[u8]>>(
 }
 
 pub fn get_witness_stack(
-    script_input: Vec<u8>,
+    script_inputs: Vec<Vec<u8>>,
     script: elements::Script,
     control_block: elements::taproot::ControlBlock,
 ) -> Vec<Vec<u8>> {
-    vec![script_input, script.into_bytes(), control_block.serialize()]
+    let mut witness_stack = script_inputs;
+    witness_stack.push(script.into_bytes());
+    witness_stack.push(control_block.serialize());
+    witness_stack
 }
 
 pub fn program_from_string<J: Jet>(

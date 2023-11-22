@@ -1,18 +1,82 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use elements_miniscript as miniscript;
 use miniscript::elements;
+use simplicity::jet::Elements;
+use simplicity::RedeemNode;
 
 use crate::json::{Flag, Parameters, ScriptError, Serde, TestCase};
 use crate::util;
 
-impl TestCase {
-    pub fn new<A: AsRef<[u8]> + Clone>(
-        comment: &'static str,
-        program_bytes: Vec<u8>,
-        commit: A,
-        extra_script_inputs: Option<Vec<Vec<u8>>>,
-        cost: Option<simplicity::Cost>,
-        error: Option<ScriptError>,
+#[derive(Debug)]
+pub struct TestBuilder {
+    comment: &'static str,
+    program_bytes: Option<Vec<u8>>,
+    cmr: Option<Vec<u8>>,
+    extra_script_inputs: Vec<Vec<u8>>,
+    cost: Option<simplicity::Cost>,
+    error: Option<ScriptError>,
+}
+
+impl TestBuilder {
+    pub fn comment(comment: &'static str) -> Self {
+        Self {
+            comment,
+            program_bytes: None,
+            cmr: None,
+            extra_script_inputs: vec![],
+            cost: None,
+            error: None,
+        }
+    }
+
+    pub fn raw_program(mut self, bytes: Vec<u8>) -> Self {
+        self.program_bytes = Some(bytes);
+        self
+    }
+
+    pub fn raw_cmr<A: AsRef<[u8]>>(mut self, cmr: A) -> Self {
+        self.cmr = Some(cmr.as_ref().to_vec());
+        self
+    }
+
+    pub fn program(mut self, program: &RedeemNode<Elements>) -> Self {
+        self.program_bytes = Some(program.encode_to_vec());
+        self.cmr = Some(program.cmr().to_byte_array().to_vec());
+        self.cost = Some(program.bounds().cost);
+        self
+    }
+
+    pub fn human_encoding(
+        self,
+        s: &str,
+        witness: &HashMap<Arc<str>, Arc<simplicity::Value>>,
     ) -> Self {
+        // TODO: Return first error that occurred upon finished()
+        // Semantics like Option::map
+        let program = util::program_from_string::<Elements>(s, witness).unwrap();
+        self.program(&program)
+    }
+
+    pub fn extra_script_input(mut self, extra_script_input: Vec<u8>) -> Self {
+        self.extra_script_inputs.push(extra_script_input);
+        self
+    }
+
+    pub fn expected_result(mut self, error: ScriptError) -> Self {
+        self.error = Some(error);
+        self
+    }
+
+    pub fn finished(self) -> TestCase {
+        let program_bytes = self.program_bytes.expect("required");
+        let commit = self.cmr.expect("required");
+        let error = match self.error.expect("required") {
+            ScriptError::Ok => None,
+            error => Some(error),
+        };
+
         let spend_info = util::get_spend_info(commit.clone(), simplicity::leaf_version());
         let control_block =
             util::get_control_block(commit.clone(), simplicity::leaf_version(), &spend_info)
@@ -21,14 +85,12 @@ impl TestCase {
         let funding_tx = get_funding_tx(&spend_info);
         let spending_tx = get_spending_tx(&funding_tx);
 
-        let mut witness =
-            util::get_witness_stack(program_bytes, util::to_script(commit), control_block);
+        let mut script_inputs = vec![program_bytes];
+        script_inputs.extend(self.extra_script_inputs);
+        let script = util::to_script(commit);
+        let mut witness = util::get_witness_stack(script_inputs, script, control_block);
 
-        if let Some(after_program) = extra_script_inputs {
-            witness.splice(1..1, after_program);
-        }
-
-        if let Some(cost) = cost {
+        if let Some(cost) = self.cost {
             if let Some(annex) = cost.get_padding(&witness) {
                 witness.push(annex);
             }
@@ -40,12 +102,12 @@ impl TestCase {
             Some(_) => (None, Some(parameters)),
         };
 
-        Self {
+        TestCase {
             tx: Serde(spending_tx),
             prevouts: funding_tx.output.into_iter().map(Serde).collect(),
             index: 0,
             flags: Flag::all_flags().to_vec(),
-            comment: comment.to_string(),
+            comment: self.comment.to_string(),
             hash_genesis_block: None,
             success,
             failure,

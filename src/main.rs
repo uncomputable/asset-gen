@@ -9,12 +9,13 @@ use std::io::Write;
 use std::sync::Arc;
 
 use simplicity::dag::NoSharing;
-use simplicity::jet::{Core, Elements};
+use simplicity::jet::Elements;
 use simplicity::node::CoreConstructible;
 use simplicity::{BitWriter, Cmr, FailEntropy, Value, WitnessNode};
 
 use crate::bit_encoding::Builder;
-use crate::json::{ScriptError, TestCase};
+use crate::json::ScriptError;
+use crate::test::TestBuilder;
 
 type Node = Arc<WitnessNode<Elements>>;
 
@@ -26,69 +27,54 @@ fn main() {
      * `unit` is an ANYONECANSPEND
      */
     let s = "main := unit";
-    let program = util::program_from_string::<Elements>(s, &empty_witness).unwrap();
-
-    test_cases.push(TestCase::new(
-        "ok/unit",
-        program.encode_to_vec(),
-        program.cmr(),
-        None,
-        None,
-        None,
-    ));
+    let test_case = TestBuilder::comment("ok/unit")
+        .human_encoding(s, &empty_witness)
+        .expected_result(ScriptError::Ok)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * `iden` is an ANYONECANSPEND
      */
     let s = "main := iden";
-    let program = util::program_from_string::<Elements>(s, &empty_witness).unwrap();
-
-    test_cases.push(TestCase::new(
-        "ok/iden",
-        program.encode_to_vec(),
-        program.cmr(),
-        None,
-        None,
-        None,
-    ));
+    let test_case = TestBuilder::comment("ok/iden")
+        .human_encoding(s, &empty_witness)
+        .expected_result(ScriptError::Ok)
+        .finished();
+    test_cases.push(test_case);
 
     /*
-     * The taproot witness stack must have exactly 3 elements
+     * The taproot witness stack is longer than 3 elements
      */
-    let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
-    let extra_script_inputs = vec![vec![0x00]];
-    test_cases.push(TestCase::new(
-        "wrong_length/extra_script_input",
-        program.encode_to_vec(),
-        program.cmr(),
-        Some(extra_script_inputs),
-        None,
-        Some(ScriptError::SimplicityWrongLength),
-    ));
+    let s = "main := unit";
+    let test_case = TestBuilder::comment("wrong_length/extra_script_input")
+        .human_encoding(s, &empty_witness)
+        .extra_script_input(vec![0x00])
+        .expected_result(ScriptError::SimplicityWrongLength)
+        .finished();
+    test_cases.push(test_case);
 
     /*
-     * The CMR (taproot witness script) must be exactly 32 bytes
+     * The CMR is shorter than 32 bytes
      */
-    let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
-    let long_cmr = &[0; 33];
-    test_cases.push(TestCase::new(
-        "wrong_length/extra_cmr_byte",
-        program.encode_to_vec(),
-        long_cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityWrongLength),
-    ));
+    let s = "main := unit";
+    let test_case = TestBuilder::comment("wrong_length/missing_cmr_byte")
+        .human_encoding(s, &empty_witness)
+        .raw_cmr([0; 31])
+        .expected_result(ScriptError::SimplicityWrongLength)
+        .finished();
+    test_cases.push(test_case);
 
-    let short_cmr = &[0; 31];
-    test_cases.push(TestCase::new(
-        "wrong_length/missing_cmr_byte",
-        program.encode_to_vec(),
-        short_cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityWrongLength),
-    ));
+    /*
+     * The CMR is longer than 32 bytes
+     */
+    let s = "main := unit";
+    let test_case = TestBuilder::comment("wrong_length/extra_cmr_byte")
+        .human_encoding(s, &empty_witness)
+        .raw_cmr([0; 33])
+        .expected_result(ScriptError::SimplicityWrongLength)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * EOF inside program length encoding
@@ -98,16 +84,12 @@ fn main() {
         .parser_stops_here()
         .unwrap_err()
         .expect_padding(6);
-    let cmr = &[0; 32];
-
-    test_cases.push(TestCase::new(
-        "bitstream_eof/program_length_eof",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityBitstreamEof),
-    ));
+    let test_case = TestBuilder::comment("bitstream_eof/program_length_eof")
+        .raw_program(bytes)
+        .raw_cmr([0; 32])
+        .expected_result(ScriptError::SimplicityBitstreamEof)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * EOF inside combinator encoding
@@ -120,15 +102,12 @@ fn main() {
         .parser_stops_here()
         .unwrap();
     let cmr = Cmr::case(Cmr::unit(), Cmr::iden());
-
-    test_cases.push(TestCase::new(
-        "bitstream_eof/combinator_eof",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityBitstreamEof),
-    ));
+    let test_case = TestBuilder::comment("bitstream_eof/combinator_eof")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityBitstreamEof)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * EOF inside witness block
@@ -140,15 +119,12 @@ fn main() {
         .parser_stops_here()
         .unwrap();
     let cmr = Cmr::unit();
-
-    test_cases.push(TestCase::new(
-        "bitstream_eof/witness_eof",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityBitstreamEof),
-    ));
+    let test_case = TestBuilder::comment("bitstream_eof/witness_eof")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityBitstreamEof)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * EOF inside witness block (C test vector)
@@ -161,15 +137,12 @@ fn main() {
         .unwrap_err()
         .unwrap_padding();
     let cmr = Cmr::unit();
-
-    test_cases.push(TestCase::new(
-        "bitstream_eof/witness_eof_c_test_vector",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityBitstreamEof),
-    ));
+    let test_case = TestBuilder::comment("bitstream_eof/witness_eof_c_test_vector")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityBitstreamEof)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Program declared longer than DAG_LEN_MAX
@@ -179,16 +152,12 @@ fn main() {
         .parser_stops_here()
         .unwrap_err()
         .unwrap_padding();
-    let cmr = &[0; 32];
-
-    test_cases.push(TestCase::new(
-        "data_out_of_range/program_length",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityDataOutOfRange),
-    ));
+    let test_case = TestBuilder::comment("data_out_of_range/program_length")
+        .raw_program(bytes)
+        .raw_cmr([0; 32])
+        .expected_result(ScriptError::SimplicityDataOutOfRange)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Witness block declared longer than 2^31 - 1
@@ -200,15 +169,12 @@ fn main() {
         .unwrap_err()
         .unwrap_padding();
     let cmr = Cmr::unit();
-
-    test_cases.push(TestCase::new(
-        "data_out_of_range/witness_length",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityDataOutOfRange),
-    ));
+    let test_case = TestBuilder::comment("data_out_of_range/witness_length")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityDataOutOfRange)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Index points past beginning of program
@@ -221,15 +187,12 @@ fn main() {
         .unwrap_err()
         .unwrap_padding();
     let cmr = Cmr::comp(Cmr::unit(), Cmr::unit());
-
-    test_cases.push(TestCase::new(
-        "data_out_of_range/relative_combinator_index",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityDataOutOfRange),
-    ));
+    let test_case = TestBuilder::comment("data_out_of_range/relative_combinator_index")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityDataOutOfRange)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Jet is not defined
@@ -240,16 +203,12 @@ fn main() {
         .program_finished()
         .unwrap_err()
         .unwrap_padding();
-    let cmr = &[0; 32];
-
-    test_cases.push(TestCase::new(
-        "data_out_of_range/undefined_jet",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityDataOutOfRange),
-    ));
+    let test_case = TestBuilder::comment("data_out_of_range/undefined_jet")
+        .raw_program(bytes)
+        .raw_cmr([0; 32])
+        .expected_result(ScriptError::SimplicityDataOutOfRange)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Word depth greater than 32 (word longer than 2^31 bits)
@@ -262,15 +221,12 @@ fn main() {
         .unwrap_err()
         .unwrap_padding();
     let cmr = Cmr::const_word(&value);
-
-    test_cases.push(TestCase::new(
-        "data_out_of_range/word_depth",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityDataOutOfRange),
-    ));
+    let test_case = TestBuilder::comment("data_out_of_range/word_depth")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityDataOutOfRange)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Program is not serialized in canonical order
@@ -284,15 +240,12 @@ fn main() {
         .unwrap_err()
         .unwrap_padding();
     let cmr = Cmr::comp(Cmr::unit(), Cmr::iden());
-
-    test_cases.push(TestCase::new(
-        "data_out_of_order/not_in_canonical_order",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityDataOutOfOrder),
-    ));
+    let test_case = TestBuilder::comment("data_out_of_order/not_in_canonical_order")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityDataOutOfOrder)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Program contains a `fail` node
@@ -305,15 +258,12 @@ fn main() {
         .unwrap_err()
         .unwrap_padding();
     let cmr = Cmr::fail(entropy);
-
-    test_cases.push(TestCase::new(
-        "fail_code/fail_node",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityFailCode),
-    ));
+    let test_case = TestBuilder::comment("fail_code/fail_node")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityFailCode)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Program contains the stop code
@@ -323,16 +273,12 @@ fn main() {
         .parser_stops_here()
         .unwrap_err()
         .unwrap_padding();
-    let cmr = &[0; 32];
-
-    test_cases.push(TestCase::new(
-        "stop_code/stop_code",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityStopCode),
-    ));
+    let test_case = TestBuilder::comment("stop_code/stop_code")
+        .raw_program(bytes)
+        .raw_cmr([0; 32])
+        .expected_result(ScriptError::SimplicityStopCode)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Node other than `case` has hidden child
@@ -347,15 +293,12 @@ fn main() {
         .unwrap_err()
         .unwrap_padding();
     let cmr = Cmr::comp(hidden_cmr, Cmr::unit());
-
-    test_cases.push(TestCase::new(
-        "hidden/comp_hidden_child",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityHidden),
-    ));
+    let test_case = TestBuilder::comment("hidden/comp_hidden_child")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityHidden)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * `Case` has two hidden children
@@ -370,33 +313,27 @@ fn main() {
         .unwrap_err()
         .unwrap_padding();
     let cmr = Cmr::case(hidden_cmr, hidden_cmr);
-
-    test_cases.push(TestCase::new(
-        "hidden/two_hidden_children",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityHidden),
-    ));
+    let test_case = TestBuilder::comment("hidden/two_hidden_children")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityHidden)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Trailing bytes after program encoding (malleability)
      */
-    let program = Arc::<WitnessNode<Core>>::unit().finalize().unwrap();
+    let s = "main := unit";
+    let program = util::program_from_string::<Elements>(s, &empty_witness).unwrap();
     let mut bytes = program.encode_to_vec();
     // Trailing byte
     bytes.push(0x00);
-    let cmr = Cmr::unit();
-
-    test_cases.push(TestCase::new(
-        "bitstream_trailing_bytes/trailing_bytes",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityBitstreamUnusedBytes),
-    ));
+    let test_case = TestBuilder::comment("bitstream_trailing_bytes/trailing_bytes")
+        .raw_program(bytes)
+        .raw_cmr(program.cmr())
+        .expected_result(ScriptError::SimplicityBitstreamUnusedBytes)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Illegal padding in final program byte (malleability)
@@ -409,15 +346,12 @@ fn main() {
         .parser_stops_here()
         .unwrap();
     let cmr = Cmr::unit();
-
-    test_cases.push(TestCase::new(
-        "bitstream_illegal_padding/illegal_padding",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityBitstreamUnusedBits),
-    ));
+    let test_case = TestBuilder::comment("bitstream_illegal_padding/illegal_padding")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityBitstreamUnusedBits)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Comp combinator: left target != right source
@@ -434,15 +368,13 @@ fn main() {
         .program_finished()
         .unwrap();
     let cmr = Cmr::comp(Cmr::unit(), Cmr::take(Cmr::unit()));
-
-    test_cases.push(TestCase::new(
-        "type_inference_unification/comp_unify_left_target_right_source",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityTypeInferenceUnification),
-    ));
+    let test_case =
+        TestBuilder::comment("type_inference_unification/comp_unify_left_target_right_source")
+            .raw_program(bytes)
+            .raw_cmr(cmr)
+            .expected_result(ScriptError::SimplicityTypeInferenceUnification)
+            .finished();
+    test_cases.push(test_case);
 
     /*
      * Pair combinator: left source != right source
@@ -462,15 +394,13 @@ fn main() {
         .unwrap_err()
         .unwrap_padding();
     let cmr = Cmr::pair(Cmr::const_word(&value), Cmr::take(Cmr::unit()));
-
-    test_cases.push(TestCase::new(
-        "type_inference_unification/pair_unify_left_source_right_source",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityTypeInferenceUnification),
-    ));
+    let test_case =
+        TestBuilder::comment("type_inference_unification/pair_unify_left_source_right_source")
+            .raw_program(bytes)
+            .raw_cmr(cmr)
+            .expected_result(ScriptError::SimplicityTypeInferenceUnification)
+            .finished();
+    test_cases.push(test_case);
 
     /*
      * Case combinator: left target != right target
@@ -495,15 +425,13 @@ fn main() {
         Cmr::take(Cmr::const_word(&small_value)),
         Cmr::take(Cmr::const_word(&large_value)),
     );
-
-    test_cases.push(TestCase::new(
-        "type_inference_unification/case_unify_left_target_right_target",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityTypeInferenceUnification),
-    ));
+    let test_case =
+        TestBuilder::comment("type_inference_unification/case_unify_left_target_right_target")
+            .raw_program(bytes)
+            .raw_cmr(cmr)
+            .expected_result(ScriptError::SimplicityTypeInferenceUnification)
+            .finished();
+    test_cases.push(test_case);
 
     /*
      * Case combinator: left source != A × C
@@ -523,15 +451,12 @@ fn main() {
         .unwrap_err()
         .unwrap_padding();
     let cmr = Cmr::case(Cmr::const_word(&value), Cmr::take(Cmr::unit()));
-
-    test_cases.push(TestCase::new(
-        "type_inference_unification/case_bind_left_target",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityTypeInferenceUnification),
-    ));
+    let test_case = TestBuilder::comment("type_inference_unification/case_bind_left_target")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityTypeInferenceUnification)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Case combinator: right source != B × C
@@ -551,15 +476,12 @@ fn main() {
         .unwrap_err()
         .unwrap_padding();
     let cmr = Cmr::case(Cmr::take(Cmr::unit()), Cmr::const_word(&value));
-
-    test_cases.push(TestCase::new(
-        "type_inference_unification/case_bind_right_target",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityTypeInferenceUnification),
-    ));
+    let test_case = TestBuilder::comment("type_inference_unification/case_bind_right_target")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityTypeInferenceUnification)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Disconnect combinator: left source != 2^256 × A
@@ -578,15 +500,12 @@ fn main() {
         .unwrap_err()
         .unwrap_padding();
     let cmr = Cmr::disconnect(Cmr::const_word(&value));
-
-    test_cases.push(TestCase::new(
-        "type_inference_unification/disconnect_bind_left_source",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityTypeInferenceUnification),
-    ));
+    let test_case = TestBuilder::comment("type_inference_unification/disconnect_bind_left_source")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityTypeInferenceUnification)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Disconnect combinator: left target != B × C
@@ -604,15 +523,12 @@ fn main() {
         .unwrap_err()
         .unwrap_padding();
     let cmr = Cmr::disconnect(Cmr::unit());
-
-    test_cases.push(TestCase::new(
-        "type_inference_unification/disconnect_bind_left_target",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityTypeInferenceUnification),
-    ));
+    let test_case = TestBuilder::comment("type_inference_unification/disconnect_bind_left_target")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityTypeInferenceUnification)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Infinite type is inferred
@@ -630,15 +546,12 @@ fn main() {
         .program_finished()
         .unwrap();
     let cmr = Cmr::case(Cmr::drop(Cmr::iden()), Cmr::iden());
-
-    test_cases.push(TestCase::new(
-        "type_inference_occurs_check/occurs_check",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityTypeInferenceOccursCheck),
-    ));
+    let test_case = TestBuilder::comment("type_inference_occurs_check/occurs_check")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityTypeInferenceOccursCheck)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Source of program root is not unit
@@ -653,15 +566,12 @@ fn main() {
         .unwrap_err()
         .unwrap_padding();
     let cmr = Cmr::take(Cmr::unit());
-
-    test_cases.push(TestCase::new(
-        "type_inference_not_program/root_source_type",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityTypeInferenceNotProgram),
-    ));
+    let test_case = TestBuilder::comment("type_inference_not_program/root_source_type")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityTypeInferenceNotProgram)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Target of program root is not unit
@@ -675,15 +585,12 @@ fn main() {
         .program_finished()
         .unwrap();
     let cmr = Cmr::pair(Cmr::unit(), Cmr::unit());
-
-    test_cases.push(TestCase::new(
-        "type_inference_not_program/root_target_type",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityTypeInferenceNotProgram),
-    ));
+    let test_case = TestBuilder::comment("type_inference_not_program/root_target_type")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityTypeInferenceNotProgram)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Parse next witness value, but bitstring is EOF
@@ -702,15 +609,12 @@ fn main() {
         Cmr::witness(),
         Cmr::case(Cmr::take(Cmr::unit()), Cmr::take(Cmr::unit())),
     );
-
-    test_cases.push(TestCase::new(
-        "witness_eof/next_value",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityWitnessEof),
-    ));
+    let test_case = TestBuilder::comment("witness_eof/next_value")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityWitnessEof)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Parse next bit of witness value, but bitstring is EOF
@@ -734,15 +638,12 @@ fn main() {
             Cmr::case(Cmr::take(Cmr::unit()), Cmr::take(Cmr::unit())),
         ),
     );
-
-    test_cases.push(TestCase::new(
-        "witness_eof/next_bit",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityWitnessEof),
-    ));
+    let test_case = TestBuilder::comment("witness_eof/next_bit")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityWitnessEof)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * FIXME: Unknown jet?
@@ -753,16 +654,11 @@ fn main() {
     ";
     let mut witness = HashMap::new();
     witness.insert(Arc::from("wit"), Value::u64(0u64));
-    let program = util::program_from_string::<Core>(s, &witness).unwrap();
-
-    test_cases.push(TestCase::new(
-        "data_out_of_range/fixme",
-        program.encode_to_vec(),
-        program.cmr(),
-        None,
-        None,
-        Some(ScriptError::SimplicityDataOutOfRange),
-    ));
+    let test_case = TestBuilder::comment("data_out_of_range/fixme")
+        .human_encoding(s, &witness)
+        .expected_result(ScriptError::SimplicityDataOutOfRange)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * FIXME: EOF despite large-enough witness
@@ -773,16 +669,11 @@ fn main() {
     ";
     let mut witness = HashMap::new();
     witness.insert(Arc::from("wit"), Value::u64(0u64));
-    let program = util::program_from_string::<Core>(s, &witness).unwrap();
-
-    test_cases.push(TestCase::new(
-        "bitstream_eof/fixme",
-        program.encode_to_vec(),
-        program.cmr(),
-        None,
-        None,
-        Some(ScriptError::SimplicityBitstreamEof),
-    ));
+    let test_case = TestBuilder::comment("bitstream_eof/fixme")
+        .human_encoding(s, &witness)
+        .expected_result(ScriptError::SimplicityBitstreamEof)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Witness block declared too long
@@ -795,30 +686,25 @@ fn main() {
         .unwrap_err()
         .unwrap_padding();
     let cmr = Cmr::unit();
-
-    test_cases.push(TestCase::new(
-        "witness_trailing_bits/trailing_bits",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityWitnessUnusedBits),
-    ));
+    let test_case = TestBuilder::comment("witness_trailing_bits/trailing_bits")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityWitnessUnusedBits)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Two unit nodes have the same IMR
      */
     // Cannot use human encoding because it unifies combinators
     let program = Node::comp(&Node::unit(), &Node::unit()).unwrap();
-
-    test_cases.push(TestCase::new(
-        "unshared_subexpression/duplicate_imr",
-        BitWriter::write_to_vec(|w| program.encode_with_tracker_default::<_, NoSharing>(w)),
-        program.cmr(),
-        None,
-        None,
-        Some(ScriptError::SimplicityUnsharedSubexpression),
-    ));
+    let bytes = BitWriter::write_to_vec(|w| program.encode_with_tracker_default::<_, NoSharing>(w));
+    let test_case = TestBuilder::comment("unshared_subexpression/duplicate_imr")
+        .raw_program(bytes)
+        .raw_cmr(program.cmr())
+        .expected_result(ScriptError::SimplicityUnsharedSubexpression)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Two hidden nodes have the same payload
@@ -860,15 +746,12 @@ fn main() {
 
     let same_cmr = Cmr::from_byte_array([0; 32]);
     let (bytes, cmr) = unshared_subexpression_program(same_cmr, same_cmr);
-
-    test_cases.push(TestCase::new(
-        "unshared_subexpression/duplicate_hidden",
-        bytes,
-        cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityUnsharedSubexpression),
-    ));
+    let test_case = TestBuilder::comment("unshared_subexpression/duplicate_hidden")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityUnsharedSubexpression)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Two hidden nodes have different payload
@@ -878,15 +761,12 @@ fn main() {
     let same_cmr = Cmr::from_byte_array([0; 32]);
     let different_cmr = Cmr::from_byte_array([1; 32]);
     let (bytes, cmr) = unshared_subexpression_program(same_cmr, different_cmr);
-
-    test_cases.push(TestCase::new(
-        "unshared_subexpression/no_duplicate_hidden",
-        bytes,
-        cmr,
-        None,
-        None,
-        None,
-    ));
+    let test_case = TestBuilder::comment("unshared_subexpression/no_duplicate_hidden")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::Ok)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * CMR mismatch inside Taproot witness
@@ -894,16 +774,13 @@ fn main() {
     let s = "
         main := unit
     ";
-    let program = util::program_from_string::<Elements>(s, &witness).unwrap();
-
-    test_cases.push(TestCase::new(
-        "cmr/mismatch",
-        program.encode_to_vec(),
-        Cmr::iden(), // CMR mismatch
-        None,
-        None,
-        Some(ScriptError::SimplicityCmr),
-    ));
+    let wrong_cmr = Cmr::iden();
+    let test_case = TestBuilder::comment("cmr/mismatch")
+        .human_encoding(s, &empty_witness)
+        .raw_cmr(wrong_cmr)
+        .expected_result(ScriptError::SimplicityCmr)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * CMR match inside Taproot witness
@@ -911,16 +788,11 @@ fn main() {
     let s = "
         main := unit
     ";
-    let program = util::program_from_string::<Elements>(s, &witness).unwrap();
-
-    test_cases.push(TestCase::new(
-        "cmr/match",
-        program.encode_to_vec(),
-        program.cmr(),
-        None,
-        None,
-        None,
-    ));
+    let test_case = TestBuilder::comment("cmr/match")
+        .human_encoding(s, &empty_witness)
+        .expected_result(ScriptError::Ok)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Program exceeds consensus limit on number of cells (memory use):
@@ -932,17 +804,13 @@ fn main() {
     program_bytes[1] = 0x08;
     program_bytes[len - 2] = 0x48;
     program_bytes[len - 1] = 0x20;
-    let commit = simplicity::Cmr::from_byte_array([
+    let cmr = Cmr::from_byte_array([
         0x7f, 0x81, 0xc0, 0x76, 0xf0, 0xdf, 0x95, 0x05, 0xbf, 0xce, 0x61, 0xf0, 0x41, 0x19, 0x7b,
         0xd9, 0x2a, 0xaa, 0xa4, 0xf1, 0x70, 0x15, 0xd1, 0xec, 0xb2, 0x48, 0xdd, 0xff, 0xe9, 0xd9,
         0xda, 0x07,
     ]);
 
     /*
-    use simplicity::jet::Core;
-    use simplicity::node::{CoreConstructible};
-    use simplicity::{Value, WitnessNode};
-
     let mut word = Value::u8(0x00);
     for _ in 0..20 {
         word = Value::prod(word.clone(), word.clone());
@@ -953,22 +821,20 @@ fn main() {
         &Arc::<WitnessNode<Core>>::const_word(word),
         &Arc::<WitnessNode<Core>>::unit(),
     )
-    .expect("const")
+    .unwrap()
     .finalize()
-    .expect("const");
+    .unwrap();
 
     assert_eq!(program_bytes, program.encode_to_vec());
     assert_eq!(commit, program.cmr());
     */
 
-    test_cases.push(TestCase::new(
-        "cost/memory_exceeds_limit",
-        program_bytes,
-        commit,
-        None,
-        None,
-        Some(ScriptError::SimplicityExecMemory),
-    ));
+    let test_case = TestBuilder::comment("cost/memory_exceeds_limit")
+        .raw_program(program_bytes)
+        .raw_cmr(cmr)
+        .expected_result(ScriptError::SimplicityExecMemory)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Large program requires padding:
@@ -1000,16 +866,11 @@ fn main() {
         cp21 := comp cp20 cp20
         main := comp cp21 cp21
     ";
-    let program = util::program_from_string::<Elements>(s, &empty_witness).unwrap();
-
-    test_cases.push(TestCase::new(
-        "cost/large_program_within_budget",
-        program.encode_to_vec(),
-        program.cmr(),
-        None,
-        Some(program.bounds().cost),
-        None,
-    ));
+    let test_case = TestBuilder::comment("cost/large_program_within_budget")
+        .human_encoding(s, &empty_witness)
+        .expected_result(ScriptError::Ok)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Program root is hidden
@@ -1020,15 +881,12 @@ fn main() {
         .parser_stops_here()
         .unwrap_err()
         .unwrap_padding();
-
-    test_cases.push(TestCase::new(
-        "hidden_root/hidden_root",
-        bytes,
-        hidden_cmr,
-        None,
-        None,
-        Some(ScriptError::SimplicityHiddenRoot),
-    ));
+    let test_case = TestBuilder::comment("hidden_root/hidden_root")
+        .raw_program(bytes)
+        .raw_cmr(hidden_cmr)
+        .expected_result(ScriptError::SimplicityHiddenRoot)
+        .finished();
+    test_cases.push(test_case);
 
     /*
      * Export test cases to JSON
