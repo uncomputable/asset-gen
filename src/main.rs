@@ -8,12 +8,15 @@ use std::fs::File;
 use std::io::Write;
 use std::sync::Arc;
 
-use simplicity::jet::Core;
-use simplicity::node::{CoreConstructible, WitnessConstructible};
-use simplicity::{Cmr, FailEntropy, Value, WitnessNode};
+use simplicity::dag::NoSharing;
+use simplicity::jet::{Core, Elements};
+use simplicity::node::CoreConstructible;
+use simplicity::{BitWriter, Cmr, FailEntropy, Value, WitnessNode};
 
 use crate::bit_encoding::Builder;
 use crate::json::{ScriptError, TestCase};
+
+type Node = Arc<WitnessNode<Elements>>;
 
 fn main() {
     let mut test_cases = Vec::new();
@@ -794,6 +797,89 @@ fn main() {
         None,
         None,
         Some(ScriptError::SimplicityWitnessUnusedBits),
+    ));
+
+    /*
+     * Two unit nodes have the same IMR
+     */
+    // Cannot use human encoding because it unifies combinators
+    let program = Node::comp(&Node::unit(), &Node::unit()).unwrap();
+
+    test_cases.push(TestCase::new(
+        "unshared_subexpression/duplicate_imr",
+        BitWriter::write_to_vec(|w| program.encode_with_tracker_default::<_, NoSharing>(w)),
+        program.cmr(),
+        None,
+        None,
+        Some(ScriptError::SimplicityUnsharedSubexpression),
+    ));
+
+    /*
+     * Two hidden nodes have the same payload
+     */
+    /// Compute a program that is maximally shared iff cmr1 == cmr2.
+    ///
+    /// Returns the program encoding and the program CMR.
+    fn unshared_subexpression_program(cmr1: Cmr, cmr2: Cmr) -> (Vec<u8>, Cmr) {
+        // FIXME: Use rust-simplicity encoder with sharing of hidden nodes disabled, once implemented
+        let bytes = bit_encoding::Program::program_preamble(13)
+            // scribe ([1], [])
+            .unit() // 1 → 1
+            .injr(1) // 1 → 1 + 1
+            .pair(1, 2) // 1 → (1 + 1) × 1
+            // End scribe
+            .hidden(cmr1.as_ref())
+            .unit() // 1 × 1 → 1
+            .case(2, 1) // (1 + 1) × 1 → 1
+            .comp(4, 1) // 1 → 1
+            .hidden(cmr2.as_ref())
+            .iden() // 1 → 1
+            .take(1) // 1 × 1 → 1
+            // Forall cmr1 cmr2, IMR(assertr cmr1 unit) != IMR(assertr cmr2 (take iden))
+            .case(3, 1) // (1 + 1) × 1 → 1
+            .comp(9, 1) // 1 → 1
+            .comp(6, 1) // 1 → 1
+            .witness_preamble(None)
+            .program_finished()
+            .unwrap_err()
+            .unwrap_padding();
+        let scribe = Cmr::pair(Cmr::injr(Cmr::unit()), Cmr::unit());
+        let cmr = Cmr::comp(
+            Cmr::comp(scribe, Cmr::case(cmr1, Cmr::unit())),
+            Cmr::comp(scribe, Cmr::case(cmr2, Cmr::take(Cmr::iden()))),
+        );
+
+        (bytes, cmr)
+    }
+
+    let same_cmr = Cmr::from_byte_array([0; 32]);
+    let (bytes, cmr) = unshared_subexpression_program(same_cmr, same_cmr);
+
+    test_cases.push(TestCase::new(
+        "unshared_subexpression/duplicate_hidden",
+        bytes,
+        cmr,
+        None,
+        None,
+        Some(ScriptError::SimplicityUnsharedSubexpression),
+    ));
+
+    /*
+     * Two hidden nodes have different payload
+     *
+     * Test if `unshared_subexpression_program(cmr1, cmr2)` is maximally shared for cmr1 != cmr2
+     */
+    let same_cmr = Cmr::from_byte_array([0; 32]);
+    let different_cmr = Cmr::from_byte_array([1; 32]);
+    let (bytes, cmr) = unshared_subexpression_program(same_cmr, different_cmr);
+
+    test_cases.push(TestCase::new(
+        "unshared_subexpression/no_duplicate_hidden",
+        bytes,
+        cmr,
+        None,
+        None,
+        None,
     ));
 
     /*
