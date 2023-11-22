@@ -30,7 +30,8 @@ fn main() {
     let test_case = TestBuilder::comment("ok/unit")
         .human_encoding(s, &empty_witness)
         .expected_result(ScriptError::Ok)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -40,7 +41,8 @@ fn main() {
     let test_case = TestBuilder::comment("ok/iden")
         .human_encoding(s, &empty_witness)
         .expected_result(ScriptError::Ok)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -51,7 +53,8 @@ fn main() {
         .human_encoding(s, &empty_witness)
         .extra_script_input(vec![0x00])
         .expected_result(ScriptError::SimplicityWrongLength)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -62,7 +65,8 @@ fn main() {
         .human_encoding(s, &empty_witness)
         .raw_cmr([0; 31])
         .expected_result(ScriptError::SimplicityWrongLength)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -73,7 +77,8 @@ fn main() {
         .human_encoding(s, &empty_witness)
         .raw_cmr([0; 33])
         .expected_result(ScriptError::SimplicityWrongLength)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -88,7 +93,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr([0; 32])
         .expected_result(ScriptError::SimplicityBitstreamEof)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -106,7 +112,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityBitstreamEof)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -123,7 +130,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityBitstreamEof)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -141,7 +149,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityBitstreamEof)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -156,7 +165,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr([0; 32])
         .expected_result(ScriptError::SimplicityDataOutOfRange)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -173,7 +183,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityDataOutOfRange)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -191,7 +202,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityDataOutOfRange)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -207,7 +219,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr([0; 32])
         .expected_result(ScriptError::SimplicityDataOutOfRange)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -225,7 +238,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityDataOutOfRange)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -244,7 +258,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityDataOutOfOrder)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -262,7 +277,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityFailCode)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -277,7 +293,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr([0; 32])
         .expected_result(ScriptError::SimplicityStopCode)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -297,7 +314,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityHidden)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -317,7 +335,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityHidden)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -332,7 +351,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(program.cmr())
         .expected_result(ScriptError::SimplicityBitstreamUnusedBytes)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -350,7 +370,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityBitstreamUnusedBits)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -373,7 +394,8 @@ fn main() {
             .raw_program(bytes)
             .raw_cmr(cmr)
             .expected_result(ScriptError::SimplicityTypeInferenceUnification)
-            .finished();
+            .finished()
+            .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -399,7 +421,8 @@ fn main() {
             .raw_program(bytes)
             .raw_cmr(cmr)
             .expected_result(ScriptError::SimplicityTypeInferenceUnification)
-            .finished();
+            .finished()
+            .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -430,7 +453,8 @@ fn main() {
             .raw_program(bytes)
             .raw_cmr(cmr)
             .expected_result(ScriptError::SimplicityTypeInferenceUnification)
-            .finished();
+            .finished()
+            .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -455,7 +479,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityTypeInferenceUnification)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -480,7 +505,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityTypeInferenceUnification)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -504,7 +530,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityTypeInferenceUnification)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -527,7 +554,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityTypeInferenceUnification)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -550,7 +578,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityTypeInferenceOccursCheck)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -570,7 +599,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityTypeInferenceNotProgram)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -589,7 +619,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityTypeInferenceNotProgram)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -613,7 +644,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityWitnessEof)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -642,7 +674,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityWitnessEof)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -660,7 +693,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityWitnessUnusedBits)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -673,7 +707,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(program.cmr())
         .expected_result(ScriptError::SimplicityUnsharedSubexpression)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -720,7 +755,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityUnsharedSubexpression)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -735,7 +771,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::Ok)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -749,7 +786,8 @@ fn main() {
         .human_encoding(s, &empty_witness)
         .raw_cmr(wrong_cmr)
         .expected_result(ScriptError::SimplicityCmr)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -761,7 +799,8 @@ fn main() {
     let test_case = TestBuilder::comment("cmr/match")
         .human_encoding(s, &empty_witness)
         .expected_result(ScriptError::Ok)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -803,7 +842,8 @@ fn main() {
         .raw_program(program_bytes)
         .raw_cmr(cmr)
         .expected_result(ScriptError::SimplicityExecMemory)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -839,7 +879,8 @@ fn main() {
     let test_case = TestBuilder::comment("cost/large_program_within_budget")
         .human_encoding(s, &empty_witness)
         .expected_result(ScriptError::Ok)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*
@@ -855,7 +896,8 @@ fn main() {
         .raw_program(bytes)
         .raw_cmr(hidden_cmr)
         .expected_result(ScriptError::SimplicityHiddenRoot)
-        .finished();
+        .finished()
+        .unwrap();
     test_cases.push(test_case);
 
     /*

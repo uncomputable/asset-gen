@@ -10,7 +10,48 @@ use crate::json::{Flag, Parameters, ScriptError, Serde, TestCase};
 use crate::util;
 
 #[derive(Debug)]
-pub struct TestBuilder {
+pub struct TestBuilder(Result<BuilderInner, String>);
+
+impl TestBuilder {
+    pub fn comment(comment: &'static str) -> Self {
+        Self(Ok(BuilderInner::comment(comment)))
+    }
+
+    pub fn raw_program(self, bytes: Vec<u8>) -> Self {
+        Self(self.0.map(|inner| inner.raw_program(bytes)))
+    }
+
+    pub fn raw_cmr<A: AsRef<[u8]>>(self, cmr: A) -> Self {
+        Self(self.0.map(|inner| inner.raw_cmr(cmr)))
+    }
+
+    pub fn program(self, program: &RedeemNode<Elements>) -> Self {
+        Self(self.0.map(|inner| inner.program(program)))
+    }
+
+    pub fn human_encoding(
+        self,
+        s: &str,
+        witness: &HashMap<Arc<str>, Arc<simplicity::Value>>,
+    ) -> Self {
+        Self(self.0.and_then(|inner| inner.human_encoding(s, witness)))
+    }
+
+    pub fn extra_script_input(self, script_input: Vec<u8>) -> Self {
+        Self(self.0.map(|inner| inner.extra_script_input(script_input)))
+    }
+
+    pub fn expected_result(self, error: ScriptError) -> Self {
+        Self(self.0.map(|inner| inner.expected_result(error)))
+    }
+
+    pub fn finished(self) -> Result<TestCase, String> {
+        self.0.map(|inner| inner.finished())
+    }
+}
+
+#[derive(Debug)]
+struct BuilderInner {
     comment: &'static str,
     program_bytes: Option<Vec<u8>>,
     cmr: Option<Vec<u8>>,
@@ -19,7 +60,7 @@ pub struct TestBuilder {
     error: Option<ScriptError>,
 }
 
-impl TestBuilder {
+impl BuilderInner {
     pub fn comment(comment: &'static str) -> Self {
         Self {
             comment,
@@ -52,15 +93,13 @@ impl TestBuilder {
         self,
         s: &str,
         witness: &HashMap<Arc<str>, Arc<simplicity::Value>>,
-    ) -> Self {
-        // TODO: Return first error that occurred upon finished()
-        // Semantics like Option::map
-        let program = util::program_from_string::<Elements>(s, witness).unwrap();
-        self.program(&program)
+    ) -> Result<Self, String> {
+        let program = util::program_from_string::<Elements>(s, witness)?;
+        Ok(self.program(&program))
     }
 
-    pub fn extra_script_input(mut self, extra_script_input: Vec<u8>) -> Self {
-        self.extra_script_inputs.push(extra_script_input);
+    pub fn extra_script_input(mut self, script_input: Vec<u8>) -> Self {
+        self.extra_script_inputs.push(script_input);
         self
     }
 
