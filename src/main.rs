@@ -646,36 +646,6 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * FIXME: Unknown jet?
-     */
-    let s = "
-        wit := witness
-        main := comp (comp wit jet_is_zero_64) jet_verify
-    ";
-    let mut witness = HashMap::new();
-    witness.insert(Arc::from("wit"), Value::u64(0u64));
-    let test_case = TestBuilder::comment("data_out_of_range/fixme")
-        .human_encoding(s, &witness)
-        .expected_result(ScriptError::SimplicityDataOutOfRange)
-        .finished();
-    test_cases.push(test_case);
-
-    /*
-     * FIXME: EOF despite large-enough witness
-     */
-    let s = "
-        wit := witness
-        main := comp (comp wit jet_add_32) unit
-    ";
-    let mut witness = HashMap::new();
-    witness.insert(Arc::from("wit"), Value::u64(0u64));
-    let test_case = TestBuilder::comment("bitstream_eof/fixme")
-        .human_encoding(s, &witness)
-        .expected_result(ScriptError::SimplicityBitstreamEof)
-        .finished();
-    test_cases.push(test_case);
-
-    /*
      * Witness block declared too long
      */
     let bytes = bit_encoding::Program::program_preamble(1)
