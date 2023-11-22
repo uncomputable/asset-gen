@@ -871,6 +871,40 @@ fn main() {
     ));
 
     /*
+     * CMR mismatch inside Taproot witness
+     */
+    let s = "
+        main := unit
+    ";
+    let program = util::program_from_string::<Elements>(s, &witness).unwrap();
+
+    test_cases.push(TestCase::new(
+        "cmr/mismatch",
+        program.encode_to_vec(),
+        Cmr::iden(), // CMR mismatch
+        None,
+        None,
+        Some(ScriptError::SimplicityCmr),
+    ));
+
+    /*
+     * CMR match inside Taproot witness
+     */
+    let s = "
+        main := unit
+    ";
+    let program = util::program_from_string::<Elements>(s, &witness).unwrap();
+
+    test_cases.push(TestCase::new(
+        "cmr/match",
+        program.encode_to_vec(),
+        program.cmr(),
+        None,
+        None,
+        None,
+    ));
+
+    /*
      * Program exceeds consensus limit on number of cells (memory use):
      * `word("2^23 zero bits") ; unit`
      */
