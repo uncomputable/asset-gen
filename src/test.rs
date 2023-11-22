@@ -63,8 +63,8 @@ impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> TestBuilder<B, C, E> {
         Self(self.0.map(|inner| inner.extra_script_input(script_input)))
     }
 
-    pub fn expected_result(self, error: ScriptError) -> TestBuilder<B, C, Error> {
-        TestBuilder(self.0.map(|inner| inner.expected_result(error)))
+    pub fn expected_error(self, error: ScriptError) -> TestBuilder<B, C, Error> {
+        TestBuilder(self.0.map(|inner| inner.expected_error(error)))
     }
 }
 
@@ -145,7 +145,7 @@ impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> BuilderInner<B, C, E> {
         self
     }
 
-    pub fn expected_result(self, error: ScriptError) -> BuilderInner<B, C, Error> {
+    pub fn expected_error(self, error: ScriptError) -> BuilderInner<B, C, Error> {
         BuilderInner {
             comment: self.comment,
             program_bytes: self.program_bytes,

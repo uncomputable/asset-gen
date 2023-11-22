@@ -29,7 +29,7 @@ fn main() {
     let s = "main := unit";
     let test_case = TestBuilder::comment("ok/unit")
         .human_encoding(s, &empty_witness)
-        .expected_result(ScriptError::Ok)
+        .expected_error(ScriptError::Ok)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -40,7 +40,7 @@ fn main() {
     let s = "main := iden";
     let test_case = TestBuilder::comment("ok/iden")
         .human_encoding(s, &empty_witness)
-        .expected_result(ScriptError::Ok)
+        .expected_error(ScriptError::Ok)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -52,7 +52,7 @@ fn main() {
     let test_case = TestBuilder::comment("wrong_length/extra_script_input")
         .human_encoding(s, &empty_witness)
         .extra_script_input(vec![0x00])
-        .expected_result(ScriptError::SimplicityWrongLength)
+        .expected_error(ScriptError::SimplicityWrongLength)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -64,7 +64,7 @@ fn main() {
     let test_case = TestBuilder::comment("wrong_length/missing_cmr_byte")
         .human_encoding(s, &empty_witness)
         .raw_cmr([0; 31])
-        .expected_result(ScriptError::SimplicityWrongLength)
+        .expected_error(ScriptError::SimplicityWrongLength)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -76,7 +76,7 @@ fn main() {
     let test_case = TestBuilder::comment("wrong_length/extra_cmr_byte")
         .human_encoding(s, &empty_witness)
         .raw_cmr([0; 33])
-        .expected_result(ScriptError::SimplicityWrongLength)
+        .expected_error(ScriptError::SimplicityWrongLength)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -92,7 +92,7 @@ fn main() {
     let test_case = TestBuilder::comment("bitstream_eof/program_length_eof")
         .raw_program(bytes)
         .raw_cmr([0; 32])
-        .expected_result(ScriptError::SimplicityBitstreamEof)
+        .expected_error(ScriptError::SimplicityBitstreamEof)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -111,7 +111,7 @@ fn main() {
     let test_case = TestBuilder::comment("bitstream_eof/combinator_eof")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityBitstreamEof)
+        .expected_error(ScriptError::SimplicityBitstreamEof)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -129,7 +129,7 @@ fn main() {
     let test_case = TestBuilder::comment("bitstream_eof/witness_eof")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityBitstreamEof)
+        .expected_error(ScriptError::SimplicityBitstreamEof)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -148,7 +148,7 @@ fn main() {
     let test_case = TestBuilder::comment("bitstream_eof/witness_eof_c_test_vector")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityBitstreamEof)
+        .expected_error(ScriptError::SimplicityBitstreamEof)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -164,7 +164,7 @@ fn main() {
     let test_case = TestBuilder::comment("data_out_of_range/program_length")
         .raw_program(bytes)
         .raw_cmr([0; 32])
-        .expected_result(ScriptError::SimplicityDataOutOfRange)
+        .expected_error(ScriptError::SimplicityDataOutOfRange)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -182,7 +182,7 @@ fn main() {
     let test_case = TestBuilder::comment("data_out_of_range/witness_length")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityDataOutOfRange)
+        .expected_error(ScriptError::SimplicityDataOutOfRange)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -201,7 +201,7 @@ fn main() {
     let test_case = TestBuilder::comment("data_out_of_range/relative_combinator_index")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityDataOutOfRange)
+        .expected_error(ScriptError::SimplicityDataOutOfRange)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -218,7 +218,7 @@ fn main() {
     let test_case = TestBuilder::comment("data_out_of_range/undefined_jet")
         .raw_program(bytes)
         .raw_cmr([0; 32])
-        .expected_result(ScriptError::SimplicityDataOutOfRange)
+        .expected_error(ScriptError::SimplicityDataOutOfRange)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -237,7 +237,7 @@ fn main() {
     let test_case = TestBuilder::comment("data_out_of_range/word_depth")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityDataOutOfRange)
+        .expected_error(ScriptError::SimplicityDataOutOfRange)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -257,7 +257,7 @@ fn main() {
     let test_case = TestBuilder::comment("data_out_of_order/not_in_canonical_order")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityDataOutOfOrder)
+        .expected_error(ScriptError::SimplicityDataOutOfOrder)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -276,7 +276,7 @@ fn main() {
     let test_case = TestBuilder::comment("fail_code/fail_node")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityFailCode)
+        .expected_error(ScriptError::SimplicityFailCode)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -292,7 +292,7 @@ fn main() {
     let test_case = TestBuilder::comment("stop_code/stop_code")
         .raw_program(bytes)
         .raw_cmr([0; 32])
-        .expected_result(ScriptError::SimplicityStopCode)
+        .expected_error(ScriptError::SimplicityStopCode)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -313,7 +313,7 @@ fn main() {
     let test_case = TestBuilder::comment("hidden/comp_hidden_child")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityHidden)
+        .expected_error(ScriptError::SimplicityHidden)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -334,7 +334,7 @@ fn main() {
     let test_case = TestBuilder::comment("hidden/two_hidden_children")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityHidden)
+        .expected_error(ScriptError::SimplicityHidden)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -350,7 +350,7 @@ fn main() {
     let test_case = TestBuilder::comment("bitstream_trailing_bytes/trailing_bytes")
         .raw_program(bytes)
         .raw_cmr(program.cmr())
-        .expected_result(ScriptError::SimplicityBitstreamUnusedBytes)
+        .expected_error(ScriptError::SimplicityBitstreamUnusedBytes)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -369,7 +369,7 @@ fn main() {
     let test_case = TestBuilder::comment("bitstream_illegal_padding/illegal_padding")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityBitstreamUnusedBits)
+        .expected_error(ScriptError::SimplicityBitstreamUnusedBits)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -393,7 +393,7 @@ fn main() {
         TestBuilder::comment("type_inference_unification/comp_unify_left_target_right_source")
             .raw_program(bytes)
             .raw_cmr(cmr)
-            .expected_result(ScriptError::SimplicityTypeInferenceUnification)
+            .expected_error(ScriptError::SimplicityTypeInferenceUnification)
             .finished()
             .unwrap();
     test_cases.push(test_case);
@@ -420,7 +420,7 @@ fn main() {
         TestBuilder::comment("type_inference_unification/pair_unify_left_source_right_source")
             .raw_program(bytes)
             .raw_cmr(cmr)
-            .expected_result(ScriptError::SimplicityTypeInferenceUnification)
+            .expected_error(ScriptError::SimplicityTypeInferenceUnification)
             .finished()
             .unwrap();
     test_cases.push(test_case);
@@ -452,7 +452,7 @@ fn main() {
         TestBuilder::comment("type_inference_unification/case_unify_left_target_right_target")
             .raw_program(bytes)
             .raw_cmr(cmr)
-            .expected_result(ScriptError::SimplicityTypeInferenceUnification)
+            .expected_error(ScriptError::SimplicityTypeInferenceUnification)
             .finished()
             .unwrap();
     test_cases.push(test_case);
@@ -478,7 +478,7 @@ fn main() {
     let test_case = TestBuilder::comment("type_inference_unification/case_bind_left_target")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityTypeInferenceUnification)
+        .expected_error(ScriptError::SimplicityTypeInferenceUnification)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -504,7 +504,7 @@ fn main() {
     let test_case = TestBuilder::comment("type_inference_unification/case_bind_right_target")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityTypeInferenceUnification)
+        .expected_error(ScriptError::SimplicityTypeInferenceUnification)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -529,7 +529,7 @@ fn main() {
     let test_case = TestBuilder::comment("type_inference_unification/disconnect_bind_left_source")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityTypeInferenceUnification)
+        .expected_error(ScriptError::SimplicityTypeInferenceUnification)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -553,7 +553,7 @@ fn main() {
     let test_case = TestBuilder::comment("type_inference_unification/disconnect_bind_left_target")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityTypeInferenceUnification)
+        .expected_error(ScriptError::SimplicityTypeInferenceUnification)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -577,7 +577,7 @@ fn main() {
     let test_case = TestBuilder::comment("type_inference_occurs_check/occurs_check")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityTypeInferenceOccursCheck)
+        .expected_error(ScriptError::SimplicityTypeInferenceOccursCheck)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -598,7 +598,7 @@ fn main() {
     let test_case = TestBuilder::comment("type_inference_not_program/root_source_type")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityTypeInferenceNotProgram)
+        .expected_error(ScriptError::SimplicityTypeInferenceNotProgram)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -618,7 +618,7 @@ fn main() {
     let test_case = TestBuilder::comment("type_inference_not_program/root_target_type")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityTypeInferenceNotProgram)
+        .expected_error(ScriptError::SimplicityTypeInferenceNotProgram)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -643,7 +643,7 @@ fn main() {
     let test_case = TestBuilder::comment("witness_eof/next_value")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityWitnessEof)
+        .expected_error(ScriptError::SimplicityWitnessEof)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -673,7 +673,7 @@ fn main() {
     let test_case = TestBuilder::comment("witness_eof/next_bit")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityWitnessEof)
+        .expected_error(ScriptError::SimplicityWitnessEof)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -692,7 +692,7 @@ fn main() {
     let test_case = TestBuilder::comment("witness_trailing_bits/trailing_bits")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityWitnessUnusedBits)
+        .expected_error(ScriptError::SimplicityWitnessUnusedBits)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -706,7 +706,7 @@ fn main() {
     let test_case = TestBuilder::comment("unshared_subexpression/duplicate_imr")
         .raw_program(bytes)
         .raw_cmr(program.cmr())
-        .expected_result(ScriptError::SimplicityUnsharedSubexpression)
+        .expected_error(ScriptError::SimplicityUnsharedSubexpression)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -754,7 +754,7 @@ fn main() {
     let test_case = TestBuilder::comment("unshared_subexpression/duplicate_hidden")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityUnsharedSubexpression)
+        .expected_error(ScriptError::SimplicityUnsharedSubexpression)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -770,7 +770,7 @@ fn main() {
     let test_case = TestBuilder::comment("unshared_subexpression/no_duplicate_hidden")
         .raw_program(bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::Ok)
+        .expected_error(ScriptError::Ok)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -785,7 +785,7 @@ fn main() {
     let test_case = TestBuilder::comment("cmr/mismatch")
         .human_encoding(s, &empty_witness)
         .raw_cmr(wrong_cmr)
-        .expected_result(ScriptError::SimplicityCmr)
+        .expected_error(ScriptError::SimplicityCmr)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -798,7 +798,7 @@ fn main() {
     ";
     let test_case = TestBuilder::comment("cmr/match")
         .human_encoding(s, &empty_witness)
-        .expected_result(ScriptError::Ok)
+        .expected_error(ScriptError::Ok)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -841,7 +841,7 @@ fn main() {
     let test_case = TestBuilder::comment("cost/memory_exceeds_limit")
         .raw_program(program_bytes)
         .raw_cmr(cmr)
-        .expected_result(ScriptError::SimplicityExecMemory)
+        .expected_error(ScriptError::SimplicityExecMemory)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -878,7 +878,7 @@ fn main() {
     ";
     let test_case = TestBuilder::comment("cost/large_program_within_budget")
         .human_encoding(s, &empty_witness)
-        .expected_result(ScriptError::Ok)
+        .expected_error(ScriptError::Ok)
         .finished()
         .unwrap();
     test_cases.push(test_case);
@@ -895,7 +895,7 @@ fn main() {
     let test_case = TestBuilder::comment("hidden_root/hidden_root")
         .raw_program(bytes)
         .raw_cmr(hidden_cmr)
-        .expected_result(ScriptError::SimplicityHiddenRoot)
+        .expected_error(ScriptError::SimplicityHiddenRoot)
         .finished()
         .unwrap();
     test_cases.push(test_case);
