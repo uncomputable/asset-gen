@@ -26,13 +26,31 @@ fn main() {
      * `unit` is an ANYONECANSPEND
      */
     let s = "main := unit";
-    test_cases.push(TestCase::from_string("ok/unit", s, &empty_witness, None));
+    let program = util::program_from_string::<Elements>(s, &empty_witness).unwrap();
+
+    test_cases.push(TestCase::new(
+        "ok/unit",
+        program.encode_to_vec(),
+        program.cmr(),
+        None,
+        None,
+        None,
+    ));
 
     /*
      * `iden` is an ANYONECANSPEND
      */
     let s = "main := iden";
-    test_cases.push(TestCase::from_string("ok/iden", s, &empty_witness, None));
+    let program = util::program_from_string::<Elements>(s, &empty_witness).unwrap();
+
+    test_cases.push(TestCase::new(
+        "ok/iden",
+        program.encode_to_vec(),
+        program.cmr(),
+        None,
+        None,
+        None,
+    ));
 
     /*
      * The taproot witness stack must have exactly 3 elements
@@ -982,10 +1000,14 @@ fn main() {
         cp21 := comp cp20 cp20
         main := comp cp21 cp21
     ";
-    test_cases.push(TestCase::from_string(
+    let program = util::program_from_string::<Elements>(s, &empty_witness).unwrap();
+
+    test_cases.push(TestCase::new(
         "cost/large_program_within_budget",
-        s,
-        &empty_witness,
+        program.encode_to_vec(),
+        program.cmr(),
+        None,
+        Some(program.bounds().cost),
         None,
     ));
 

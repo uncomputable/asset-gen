@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-
 use elements_miniscript as miniscript;
 use miniscript::elements;
 
@@ -54,30 +51,6 @@ impl TestCase {
             failure,
             is_final: false,
         }
-    }
-
-    pub fn from_string(
-        comment: &'static str,
-        s: &str,
-        witness: &HashMap<Arc<str>, Arc<simplicity::Value>>,
-        error: Option<ScriptError>,
-    ) -> Self {
-        let forest =
-            simplicity::human_encoding::Forest::<simplicity::jet::Core>::parse(s).expect("parse");
-        let program = forest
-            .to_witness_node(witness)
-            .finalize()
-            .expect("finalize");
-        let program_bytes = program.encode_to_vec();
-
-        Self::new(
-            comment,
-            program_bytes,
-            program.cmr(),
-            None,
-            Some(program.bounds().cost),
-            error,
-        )
     }
 }
 
