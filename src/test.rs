@@ -56,18 +56,6 @@ impl TestCase {
         }
     }
 
-    pub fn from_bytes(
-        comment: &'static str,
-        program_bytes: Vec<u8>,
-        error: Option<ScriptError>,
-    ) -> Self {
-        let mut bits = simplicity::BitIter::new(program_bytes.iter().copied());
-        let program = simplicity::CommitNode::<simplicity::jet::Core>::decode(&mut bits).unwrap();
-        let commit = program.cmr();
-
-        Self::new(comment, program_bytes, commit, None, None, error)
-    }
-
     pub fn from_string(
         comment: &'static str,
         s: &str,
