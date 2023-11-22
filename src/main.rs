@@ -356,8 +356,8 @@ fn main() {
     /*
      * Comp combinator: left target != right source
      *
-     * unit:      A     -> 1
-     * take unit: 1 × B -> 1
+     * unit:      A     → 1
+     * take unit: 1 × B → 1
      * comp unit (take unit) fails to unify
      */
     let bytes = bit_encoding::Program::program_preamble(3)
@@ -379,8 +379,8 @@ fn main() {
     /*
      * Pair combinator: left source != right source
      *
-     * word(0):    1     -> 2 = 1 + 1
-     * take unit:  A × B -> 1
+     * word(0):    1     → 2 = 1 + 1
+     * take unit:  A × B → 1
      * pair word(0) (take unit) fails to unify
      */
     let value = Value::u1(0);
@@ -405,8 +405,8 @@ fn main() {
     /*
      * Case combinator: left target != right target
      *
-     * take word(0):  A × 1 -> 2^1
-     * take word(00): A × 1 -> 2^2
+     * take word(0):  A × 1 → 2^1
+     * take word(00): A × 1 → 2^2
      * case (take word(0)) (take word(00)) fails to unify
      */
     let small_value = Value::u1(0);
@@ -436,8 +436,8 @@ fn main() {
     /*
      * Case combinator: left source != A × C
      *
-     * word(0):   1     -> 2
-     * take unit: B × C -> 1
+     * word(0):   1     → 2
+     * take unit: B × C → 1
      * case word(0) (take unit) fails to unify
      */
     let value = Value::u1(0);
@@ -461,8 +461,8 @@ fn main() {
     /*
      * Case combinator: right source != B × C
      *
-     * take unit: B × C -> 1
-     * word(0):   1     -> 2
+     * take unit: B × C → 1
+     * word(0):   1     → 2
      * case (take unit) word(0) fails to unify
      */
     let value = Value::u1(0);
@@ -486,8 +486,8 @@ fn main() {
     /*
      * Disconnect combinator: left source != 2^256 × A
      *
-     * word(0): 1 -> 2
-     * iden   : C -> D
+     * word(0): 1 → 2
+     * iden   : C → D
      * disconnect word(0) iden fails to unify
      */
     let value = Value::u1(0);
@@ -510,8 +510,8 @@ fn main() {
     /*
      * Disconnect combinator: left target != B × C
      *
-     * unit: A -> 1
-     * iden: C -> D
+     * unit: A → 1
+     * iden: C → D
      * disconnect unit iden fails to unify
      */
     let bytes = bit_encoding::Program::program_preamble(3)
@@ -533,8 +533,8 @@ fn main() {
     /*
      * Infinite type is inferred
      *
-     * drop iden: A × B -> B
-     * iden:      C     -> C
+     * drop iden: A × B → B
+     * iden:      C     → C
      * case (drop iden) iden fails the occurs check
      */
     let bytes = bit_encoding::Program::program_preamble(4)
@@ -556,7 +556,7 @@ fn main() {
     /*
      * Source of program root is not unit
      *
-     * take unit: A × B -> 1
+     * take unit: A × B → 1
      */
     let bytes = bit_encoding::Program::program_preamble(2)
         .unit()
@@ -576,7 +576,7 @@ fn main() {
     /*
      * Target of program root is not unit
      *
-     * pair unit unit: A -> 1 × 1
+     * pair unit unit: A → 1 × 1
      */
     let bytes = bit_encoding::Program::program_preamble(2)
         .unit()
