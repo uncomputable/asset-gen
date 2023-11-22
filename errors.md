@@ -134,12 +134,13 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
 
 - sharing is not maximal
 
-1. two hidden nodes have the same payload
-    - by definition of the IMR, this is a special case of 2.
-    - it still makes sense to treat 1. separately
-2. two nodes have the same IMR
+1. two nodes have the same IMR
     - this is the "second-pass" IMR
     - the "first-pass" IMR is updated with the TMR of the source and target type
+2. two hidden nodes have the same payload
+    - hidden nodes exist only in the encoding, as storage of CMRs
+    - hidden nodes have neither TMR nor IMR
+    - maximal sharing means that the same CMR is never stored at two places
 
 # `SCRIPT_ERR_SIMPLICITY_CMR = 78`
 
