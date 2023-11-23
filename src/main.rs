@@ -943,6 +943,34 @@ fn main() {
     test_cases.push(test_case);
 
     /*
+     * Jet fails during its execution
+     */
+    let s = "
+        false := const 0b0
+        main := comp false jet_verify
+    ";
+    let test_case = TestBuilder::comment("exec_jet/jet_verify_fails")
+        .human_encoding(s, &empty_witness)
+        .expected_error(ScriptError::SimplicityExecJet)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * Jet succeeds during its execution
+     */
+    let s = "
+        true := const 0b1
+        main := comp true jet_verify
+    ";
+    let test_case = TestBuilder::comment("exec_jet/jet_verify_succeeds")
+        .human_encoding(s, &empty_witness)
+        .expected_error(ScriptError::Ok)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
      * Program root is hidden
      */
     let hidden_cmr = Cmr::from_byte_array([0; 32]);
