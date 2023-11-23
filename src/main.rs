@@ -826,9 +826,9 @@ fn main() {
     }
 
     // FIXME: Finalizing this program takes a long time
-    let program = Arc::<WitnessNode<Core>>::comp(
-        &Arc::<WitnessNode<Core>>::const_word(word),
-        &Arc::<WitnessNode<Core>>::unit(),
+    let program = Node::comp(
+        &Node::const_word(word),
+        &Node::unit(),
     )
     .unwrap()
     .finalize()
