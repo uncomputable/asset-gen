@@ -1031,6 +1031,36 @@ fn main() {
     test_cases.push(test_case);
 
     /*
+     * Left branch of case node was not executed
+     */
+    let s = "
+        input := pair (const 0b1) unit
+        output := case (take unit) (take unit)
+        main := comp input output
+    ";
+    let test_case = TestBuilder::comment("antidos/check_case_left")
+        .human_encoding(s, &empty_witness)
+        .expected_error(ScriptError::SimplicityAntidos)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * Right branch of case node was not executed
+     */
+    let s = "
+        input := pair (const 0b0) unit
+        output := case (take unit) (take unit)
+        main := comp input output
+    ";
+    let test_case = TestBuilder::comment("antidos/check_case_right")
+        .human_encoding(s, &empty_witness)
+        .expected_error(ScriptError::SimplicityAntidos)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
      * Program root is hidden
      */
     let hidden_cmr = Cmr::from_byte_array([0; 32]);
