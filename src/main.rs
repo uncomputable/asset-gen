@@ -903,15 +903,14 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * Program exceeds consensus limit on number of cells (memory use):
-     * `word("2^23 zero bits") ; unit`
+     * Program uses more memory than static maximum (CELLS_MAX)
      */
     let len = (1 << 20) + 4;
-    let mut program_bytes = vec![0u8; len];
-    program_bytes[0] = 0xb7;
-    program_bytes[1] = 0x08;
-    program_bytes[len - 2] = 0x48;
-    program_bytes[len - 1] = 0x20;
+    let mut bytes = vec![0u8; len];
+    bytes[0] = 0xb7;
+    bytes[1] = 0x08;
+    bytes[len - 2] = 0x48;
+    bytes[len - 1] = 0x20;
     let cmr = Cmr::from_byte_array([
         0x7f, 0x81, 0xc0, 0x76, 0xf0, 0xdf, 0x95, 0x05, 0xbf, 0xce, 0x61, 0xf0, 0x41, 0x19, 0x7b,
         0xd9, 0x2a, 0xaa, 0xa4, 0xf1, 0x70, 0x15, 0xd1, 0xec, 0xb2, 0x48, 0xdd, 0xff, 0xe9, 0xd9,
@@ -923,22 +922,20 @@ fn main() {
     for _ in 0..20 {
         word = Value::prod(word.clone(), word.clone());
     }
-
-    // FIXME: Finalizing this program takes a long time
     let program = Node::comp(
         &Node::const_word(word),
         &Node::unit(),
     )
-    .unwrap()
-    .finalize()
     .unwrap();
 
-    assert_eq!(program_bytes, program.encode_to_vec());
-    assert_eq!(commit, program.cmr());
+    // FIXME: Writing to vec takes 20 seconds
+    let program_bytes = BitWriter::write_to_vec(|w| program.encode_with_tracker_default::<_, NoSharing>(w));
+    assert_eq!(bytes, program_bytes);
+    assert_eq!(cmr, program.cmr());
     */
 
-    let test_case = TestBuilder::comment("cost/memory_exceeds_limit")
-        .raw_program(program_bytes)
+    let test_case = TestBuilder::comment("exec_memory/memory_usage_exceeds_max_cells")
+        .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_error(ScriptError::SimplicityExecMemory)
         .finished()
