@@ -971,6 +971,66 @@ fn main() {
     test_cases.push(test_case);
 
     /*
+     * Execute right branch of left assertion
+     */
+    let s = "
+        input := pair (const 0b1) unit
+        output := assertl (take unit) #{take unit}
+        main := comp input output
+    ";
+    let test_case = TestBuilder::comment("exec_assert/right_branch_assertl")
+        .human_encoding(s, &empty_witness)
+        .expected_error(ScriptError::SimplicityExecAssert)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * Execute left branch of left assertion
+     */
+    let s = "
+        input := pair (const 0b0) unit
+        output := assertl (take unit) #{take unit}
+        main := comp input output
+    ";
+    let test_case = TestBuilder::comment("exec_assert/left_branch_assertl")
+        .human_encoding(s, &empty_witness)
+        .expected_error(ScriptError::Ok)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * Execute left branch of right assertion
+     */
+    let s = "
+        input := pair (const 0b0) unit
+        output := assertr #{take unit} (take unit)
+        main := comp input output
+    ";
+    let test_case = TestBuilder::comment("exec_assert/left_branch_assertr")
+        .human_encoding(s, &empty_witness)
+        .expected_error(ScriptError::SimplicityExecAssert)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * Execute right branch of right assertion
+     */
+    let s = "
+        input := pair (const 0b1) unit
+        output := assertr #{take unit} (take unit)
+        main := comp input output
+    ";
+    let test_case = TestBuilder::comment("exec_assert/right_branch_assertr")
+        .human_encoding(s, &empty_witness)
+        .expected_error(ScriptError::Ok)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
      * Program root is hidden
      */
     let hidden_cmr = Cmr::from_byte_array([0; 32]);
