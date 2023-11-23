@@ -154,7 +154,7 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
 
 # `SCRIPT_ERR_SIMPLICITY_AMR = 79`
 
-```c++
+```c
 extern bool elements_simplicity_execSimplicity( simplicity_err* error, unsigned char* imr
                                               , const transaction* tx, uint_fast32_t ix, const tapEnv* taproot
                                               , const unsigned char* genesisBlockHash
@@ -173,10 +173,163 @@ if (!elements_simplicity_execSimplicity(&error, 0, txdata->m_simplicity_tx_data,
 - the error cannot be triggered
 
 # `SCRIPT_ERR_SIMPLICITY_EXEC_BUDGET = 80`
+
+```c
+simplicity_err analyseBounds( ubounded *cellsBound, ubounded *UWORDBound, ubounded *frameBound, ubounded *costBound
+                            , ubounded maxCells, ubounded maxCost, const dag_node* dag, const type* type_dag, const size_t len)
+```
+
+- failure in `analyseBounds(..., maxCost, ...)`
+    - `maxCost < costBound`
+    - `costBound <= UBOUNDED_MAX` is computed program CPU cost
+
+```c
+simplicity_err result = analyseBounds(&cellsBound, &UWORDBound, &frameBound, &costBound, CELLS_MAX, budget ? *budget*1000 : UBOUNDED_MAX, dag, type_dag, len);
+```
+
+- `analyseBounds(..., maxCost, ...)` is called by `evalTCOExpression(..., budget, ...)`
+    - if a budget is given, then `maxCost = budget * 1000`
+    - otherwise, `maxCost = UBOUNDED_MAX`
+
+```c
+*error = evalTCOProgram(dag, type_dag, (size_t)dag_len, &(ubounded){budget <= BUDGET_MAX ? (ubounded)budget : BUDGET_MAX}, &env);
+```
+
+- `evalTCOExpression(..., budget, ...)` is called by `evalTCOProgram(..., budget, ...)`
+- `evalTCOProgram(..., budget, ...)` is called by `elements_simplicity_execSimplicity(..., budget, ...)`
+    - `budget` = min(`budget`, `BUDGET_MAX`)
+
+```c
+#define BUDGET_MAX 4000050U
+```
+
+- the program cost exceeds the program budget
+- the budget is proportional to the size of the taproot witness stack
+- budget can be added by padding the annex
+- once `BUDGET_MAX` is reached, padding no longer increases the budget
+
+1. expensive program has insufficient padding
+2. expensive program has sufficient padding, but its cost exceeds `MAX_BUDGET`
+
 # `SCRIPT_ERR_SIMPLICITY_EXEC_MEMORY = 81`
+
+```c
+simplicity_err analyseBounds( ubounded *cellsBound, ubounded *UWORDBound, ubounded *frameBound, ubounded *costBound
+                            , ubounded maxCells, ubounded maxCost, const dag_node* dag, const type* type_dag, const size_t len)
+```
+
+- failure in `analyseBounds(..., maxCells, ...)`
+    - `maxCells < cellsBound`
+    - `cellsBound <= UBOUNDED_MAX` is computed program memory usage
+
+```c
+simplicity_err result = analyseBounds(&cellsBound, &UWORDBound, &frameBound, &costBound, CELLS_MAX, budget ? *budget*1000 : UBOUNDED_MAX, dag, type_dag, len);
+```
+
+- `analyseBounds(..., maxCells, ...)` is called by `evalTCOExpression`
+    - `maxCells = CELLS_MAX` (static maximum)
+
+```c
+#define CELLS_MAX 0x500000U /* 5120 Kibibits ought to be enough for anyone. */
+```
+
+1. the program memory usage exceeds `CELLS_MAX`
+
 # `SCRIPT_ERR_SIMPLICITY_EXEC_JET = 82`
+
+```c
+typedef bool (*jet_ptr)(frameItem* dst, frameItem src, const txEnv* env);
+```
+
+- jets write to a destination frame and return a success Boolean
+
+```c
+if(!dag[pc].jet(state.activeWriteFrame, *state.activeReadFrame, env)) return SIMPLICITY_ERR_EXEC_JET;
+```
+
+- failure in `runTCO` (called by `evalTCOExpression`)
+    - a called jet returns failure
+
+1. a executed jet fails
+    - `*verify` jets
+
 # `SCRIPT_ERR_SIMPLICITY_EXEC_ASSERT = 83`
+
+```c
+case HIDDEN: return SIMPLICITY_ERR_EXEC_ASSERT; /* We have failed an 'ASSERTL' or 'ASSERTR' combinator. */
+```
+
+- failure in `runTCO` (called by `evalTCOExpression)
+    - reached a hidden node
+    - `assertl expr cmr = case expr hidden(cmr)`
+    - `assertr cmr expr = case hidden(cmr) expr`
+- failed assertion
+
+1. reached right branch of left assertion
+    - left assertion means only the left branch is ever executed
+2. reached left branch of right assertion
+    - right assertion means only the left branch is ever executed
+
 # `SCRIPT_ERR_SIMPLICITY_ANTIDOS = 84`
+
+```c
+flags_type test_flags = (HIDDEN != dag[i].tag ? CHECK_EXEC : 0)
+                      | (CASE == dag[i].tag ? CHECK_CASE : 0);
+
+/* Only enable requested checks */
+test_flags &= checks;
+if (test_flags != (test_flags & stack[i].flags)) {
+  return SIMPLICITY_ERR_ANTIDOS;
+}
+```
+
+- failure in `antiDos`
+    - a node set a flag to false that is currently checked
+    - `stack` contains information about each node from the past execution
+
+```c
+#define FLAG_TCO        0x01 // Whether TCO is on (1) or off (0).
+#define FLAG_LAST_CASE  0x02 // For case combinators, last branch executed was right (1) or left (0).
+#define FLAG_EXEC       0x10 // Whether this combinator has ever been executed (1) or not (0).
+#define FLAG_CASE_LEFT  0x20 // For case combinators, whether the left branch has ever been executed (1) or not (0).
+#define FLAG_CASE_RIGHT 0x40 // For case combinators, whether the right branch has ever been executed (1) or not (0).
+```
+
+- there are five flags that can be checked
+
+```c
+result = antiDos(anti_dos_checks, stack, dag, len);
+```
+
+- `antiDos(anti_dos_checks, ...)` is called by `evalTCOExpression(anti_dos_checks, ...)`
+
+```c
+#define CHECK_NONE 0
+#define CHECK_EXEC 0x10 // = FLAG_EXEC
+#define CHECK_CASE 0x60 // = FLAG_CASE_LEFT | FLAG_CASE_RIGHT
+#define CHECK_ALL ((flags_type)(-1))
+
+static inline simplicity_err evalTCOProgram(const dag_node* dag, type* type_dag, size_t len, const ubounded* budget, const txEnv* env) {
+  return evalTCOExpression(CHECK_ALL, NULL, NULL, dag, type_dag, len, budget, env);
+}
+```
+
+- `evalTCOExpression(CHECK_ALL, ...)` is called by `evalTCOProgram`
+    - `CHECK_ALL` is an all-ones bitmap
+    - all checks are enabled
+- `FLAG_TCO` is always true
+    - the C code only supports TCO evaluation
+    - the flag is set by `runTCO`
+- `FLAG_LAST_CASE` is always true
+    - the flag is implied by canonical order
+    - canonical order is checked before execution
+
+1. a node was not executed
+    - except for hidden nodes
+2. the left branch of a case node was not executed
+    - except for assertions
+3. the right branch of a case node was not executed
+    - except for assertions
 
 # `SCRIPT_ERR_SIMPLICITY_HIDDEN_ROOT = 85`
 
