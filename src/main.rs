@@ -804,6 +804,105 @@ fn main() {
     test_cases.push(test_case);
 
     /*
+     * Expensive program has insufficient padding
+     */
+    let s = "
+        id0 := iden
+        cp0 := comp id0 id0
+        cp1 := comp cp0 cp0
+        cp2 := comp cp1 cp1
+        cp3 := comp cp2 cp2
+        cp4 := comp cp3 cp3
+        cp5 := comp cp4 cp4
+        cp6 := comp cp5 cp5
+        cp7 := comp cp6 cp6
+        cp8 := comp cp7 cp7
+        cp9 := comp cp8 cp8
+        main := comp cp9 cp9
+    ";
+    let test_case = TestBuilder::comment("exec_budget/insufficient_padding")
+        .human_encoding(s, &empty_witness)
+        .reset_cost()
+        .expected_error(ScriptError::SimplicityExecBudget)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * Expensive program has sufficient padding, but costs more than MAX_BUDGET
+     */
+    let s = "
+        id0 := iden
+        cp0 := comp id0 id0
+        cp1 := comp cp0 cp0
+        cp2 := comp cp1 cp1
+        cp3 := comp cp2 cp2
+        cp4 := comp cp3 cp3
+        cp5 := comp cp4 cp4
+        cp6 := comp cp5 cp5
+        cp7 := comp cp6 cp6
+        cp8 := comp cp7 cp7
+        cp9 := comp cp8 cp8
+        cp10 := comp cp9 cp9
+        cp11 := comp cp10 cp10
+        cp12 := comp cp11 cp11
+        cp13 := comp cp12 cp12
+        cp14 := comp cp13 cp13
+        cp15 := comp cp14 cp14
+        cp16 := comp cp15 cp15
+        cp17 := comp cp16 cp16
+        cp18 := comp cp17 cp17
+        cp19 := comp cp18 cp18
+        cp20 := comp cp19 cp19
+        cp21 := comp cp20 cp20
+        cp22 := comp cp21 cp21
+        cp23 := comp cp22 cp22
+        main := comp cp23 cp23
+    ";
+    let test_case = TestBuilder::comment("exec_budget/padding_exceeds_max_budget")
+        .human_encoding(s, &empty_witness)
+        .expected_error(ScriptError::SimplicityExecBudget)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * Expensive program has sufficient padding (C test vector)
+     */
+    let s = "
+        id0 := iden
+        cp0 := comp id0 id0
+        cp1 := comp cp0 cp0
+        cp2 := comp cp1 cp1
+        cp3 := comp cp2 cp2
+        cp4 := comp cp3 cp3
+        cp5 := comp cp4 cp4
+        cp6 := comp cp5 cp5
+        cp7 := comp cp6 cp6
+        cp8 := comp cp7 cp7
+        cp9 := comp cp8 cp8
+        cp10 := comp cp9 cp9
+        cp11 := comp cp10 cp10
+        cp12 := comp cp11 cp11
+        cp13 := comp cp12 cp12
+        cp14 := comp cp13 cp13
+        cp15 := comp cp14 cp14
+        cp16 := comp cp15 cp15
+        cp17 := comp cp16 cp16
+        cp18 := comp cp17 cp17
+        cp19 := comp cp18 cp18
+        cp20 := comp cp19 cp19
+        cp21 := comp cp20 cp20
+        main := comp cp21 cp21
+    ";
+    let test_case = TestBuilder::comment("exec_budget/sufficient_padding")
+        .human_encoding(s, &empty_witness)
+        .expected_error(ScriptError::Ok)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
      * Program exceeds consensus limit on number of cells (memory use):
      * `word("2^23 zero bits") ; unit`
      */
@@ -842,43 +941,6 @@ fn main() {
         .raw_program(program_bytes)
         .raw_cmr(cmr)
         .expected_error(ScriptError::SimplicityExecMemory)
-        .finished()
-        .unwrap();
-    test_cases.push(test_case);
-
-    /*
-     * Large program requires padding:
-     * `iden` composed with itself 2^23 times
-     */
-    let s = "
-        id0 := iden
-        cp0 := comp id0 id0
-        cp1 := comp cp0 cp0
-        cp2 := comp cp1 cp1
-        cp3 := comp cp2 cp2
-        cp4 := comp cp3 cp3
-        cp5 := comp cp4 cp4
-        cp6 := comp cp5 cp5
-        cp7 := comp cp6 cp6
-        cp8 := comp cp7 cp7
-        cp9 := comp cp8 cp8
-        cp10 := comp cp9 cp9
-        cp11 := comp cp10 cp10
-        cp12 := comp cp11 cp11
-        cp13 := comp cp12 cp12
-        cp14 := comp cp13 cp13
-        cp15 := comp cp14 cp14
-        cp16 := comp cp15 cp15
-        cp17 := comp cp16 cp16
-        cp18 := comp cp17 cp17
-        cp19 := comp cp18 cp18
-        cp20 := comp cp19 cp19
-        cp21 := comp cp20 cp20
-        main := comp cp21 cp21
-    ";
-    let test_case = TestBuilder::comment("cost/large_program_within_budget")
-        .human_encoding(s, &empty_witness)
-        .expected_error(ScriptError::Ok)
         .finished()
         .unwrap();
     test_cases.push(test_case);
