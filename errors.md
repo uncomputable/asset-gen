@@ -323,12 +323,13 @@ static inline simplicity_err evalTCOProgram(const dag_node* dag, type* type_dag,
 - `FLAG_LAST_CASE` is always true
     - the flag is implied by canonical order
     - canonical order is checked before execution
+- `FLAG_EXEC` is implied by `FLAG_CASE_LEFT | FLAG_CASE_RIGHT`
+    - case is the only node where branching happens
+    - if both left and right branch of every case node were executed, then all nodes were executed
 
-1. a node was not executed
-    - except for hidden nodes
-2. the left branch of a case node was not executed
+1. the left branch of a case node was not executed
     - except for assertions
-3. the right branch of a case node was not executed
+2. the right branch of a case node was not executed
     - except for assertions
 
 # `SCRIPT_ERR_SIMPLICITY_HIDDEN_ROOT = 85`
