@@ -4,7 +4,7 @@ use std::sync::Arc;
 use elements_miniscript as miniscript;
 use miniscript::elements;
 use simplicity::jet::Elements;
-use simplicity::RedeemNode;
+use simplicity::{Cost, RedeemNode};
 
 use crate::json::{Flag, Parameters, ScriptError, Serde, TestCase};
 use crate::util;
@@ -63,6 +63,10 @@ impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> TestBuilder<B, C, E> {
         Self(self.0.map(|inner| inner.extra_script_input(script_input)))
     }
 
+    pub fn reset_cost(self) -> Self {
+        Self(self.0.map(|inner| inner.reset_cost()))
+    }
+
     pub fn expected_error(self, error: ScriptError) -> TestBuilder<B, C, Error> {
         TestBuilder(self.0.map(|inner| inner.expected_error(error)))
     }
@@ -80,7 +84,7 @@ struct BuilderInner<B: MaybeBytes, C: MaybeCmr, E: MaybeError> {
     program_bytes: B,
     cmr: C,
     extra_script_inputs: Vec<Vec<u8>>,
-    cost: Option<simplicity::Cost>,
+    cost: Option<Cost>,
     error: E,
 }
 
@@ -142,6 +146,11 @@ impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> BuilderInner<B, C, E> {
 
     pub fn extra_script_input(mut self, script_input: Vec<u8>) -> Self {
         self.extra_script_inputs.push(script_input);
+        self
+    }
+
+    pub fn reset_cost(mut self) -> Self {
+        self.cost = None;
         self
     }
 
