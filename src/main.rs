@@ -170,7 +170,7 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * Witness block declared longer than 2^31 - 1
+     * Witness block declared longer than 2^31 - 1 (C test vector)
      */
     let bytes = bit_encoding::Program::program_preamble(1)
         .unit()
@@ -903,7 +903,7 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * Program uses more memory than static maximum (CELLS_MAX)
+     * Program uses more memory than static maximum (CELLS_MAX) (C test vector)
      */
     let len = (1 << 20) + 4;
     let mut bytes = vec![0u8; len];
