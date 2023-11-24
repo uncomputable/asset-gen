@@ -122,14 +122,25 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * EOF inside program length encoding
+     * Empty program
      */
-    let bytes = bit_encoding::Program::program_preamble(2)
-        .delete_bits(1)
+    let test_case = TestBuilder::comment("bitstream_eof/empty_program")
+        .raw_program(vec![])
+        .raw_cmr([0; 32])
+        .expected_error(ScriptError::SimplicityBitstreamEof)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * Unfinished program length
+     */
+    let bytes = bit_encoding::Program::program_preamble(16)
+        .assert_n_total_written(8 + 3)
+        .delete_bits(3)
         .parser_stops_here()
-        .unwrap_err()
-        .expect_padding(6);
-    let test_case = TestBuilder::comment("bitstream_eof/program_length_eof")
+        .unwrap();
+    let test_case = TestBuilder::comment("bitstream_eof/unfinished_program_length")
         .raw_program(bytes)
         .raw_cmr([0; 32])
         .expected_error(ScriptError::SimplicityBitstreamEof)
@@ -138,17 +149,18 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * EOF inside combinator encoding
+     * Unfinished combinator body
      */
     let bytes = bit_encoding::Program::program_preamble(3)
         .unit()
         .iden()
         .comp(2, 1)
-        .delete_bits(2 + 1 + 3) // Delete bits to reach byte boundary
+        .assert_n_total_written(2 * 8 + 6)
+        .delete_bits(6)
         .parser_stops_here()
         .unwrap();
     let cmr = Cmr::case(Cmr::unit(), Cmr::iden());
-    let test_case = TestBuilder::comment("bitstream_eof/combinator_eof")
+    let test_case = TestBuilder::comment("bitstream_eof/unfinished_combinator_body")
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_error(ScriptError::SimplicityBitstreamEof)
@@ -157,7 +169,66 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * EOF inside witness block
+     * Unfinished combinator child index
+     */
+    let bytes = bit_encoding::Program::program_preamble(4) // Increase len for more bits
+        .unit()
+        .iden()
+        .comp(2, 1)
+        .assert_n_total_written(3 * 8 + 1)
+        .delete_bits(1)
+        .parser_stops_here()
+        .unwrap();
+    let cmr = Cmr::comp(Cmr::unit(), Cmr::iden());
+    let test_case = TestBuilder::comment("bitstream_eof/unfinished_combinator_child_index")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_error(ScriptError::SimplicityBitstreamEof)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * Finished combinator body + child indices
+     */
+    let bytes = bit_encoding::Program::program_preamble(3)
+        .unit()
+        .iden()
+        .comp(2, 1)
+        .witness_preamble(0)
+        .program_finished()
+        .unwrap_err()
+        .unwrap_padding();
+    let cmr = Cmr::comp(Cmr::unit(), Cmr::iden());
+    let test_case = TestBuilder::comment("bitstream_eof/finished_combinator")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_error(ScriptError::Ok)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * Unfinished witness length
+     */
+    let bytes = bit_encoding::Program::program_preamble(1)
+        .unit()
+        .witness_preamble(16)
+        .assert_n_total_written(2 * 8 + 2)
+        .delete_bits(2)
+        .parser_stops_here()
+        .unwrap();
+    let cmr = Cmr::unit();
+    let test_case = TestBuilder::comment("bitstream_eof/unfinished_witness_length")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_error(ScriptError::SimplicityBitstreamEof)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * Unfinished witness block
      */
     let bytes = bit_encoding::Program::program_preamble(1)
         .unit()
@@ -166,7 +237,7 @@ fn main() {
         .parser_stops_here()
         .unwrap();
     let cmr = Cmr::unit();
-    let test_case = TestBuilder::comment("bitstream_eof/witness_eof")
+    let test_case = TestBuilder::comment("bitstream_eof/unfinished_witness_block")
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_error(ScriptError::SimplicityBitstreamEof)
@@ -175,7 +246,7 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * EOF inside witness block (C test vector)
+     * Unfinished witness block (C test vector)
      */
     let bytes = bit_encoding::Program::program_preamble(1)
         .unit()
@@ -185,10 +256,92 @@ fn main() {
         .unwrap_err()
         .unwrap_padding();
     let cmr = Cmr::unit();
-    let test_case = TestBuilder::comment("bitstream_eof/witness_eof_c_test_vector")
+    let test_case = TestBuilder::comment("bitstream_eof/unfinished_witness_block2")
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_error(ScriptError::SimplicityBitstreamEof)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * Unfinished jet body
+     *
+     * XXX: Potentially flaky because jet encodings may change
+     */
+    let bytes = bit_encoding::Program::program_preamble(3)
+        .jet(462384, 19)
+        .assert_n_total_written(3 * 8)
+        .delete_bits(8)
+        .parser_stops_here()
+        .unwrap();
+    let cmr = Cmr::comp(Cmr::jet(Elements::Version), Cmr::unit());
+    let test_case = TestBuilder::comment("bitstream_eof/unfinished_jet_body")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_error(ScriptError::SimplicityBitstreamEof)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * Finished jet body
+     *
+     * XXX: Potentially flaky because jet encodings may change
+     */
+    let bytes = bit_encoding::Program::program_preamble(3)
+        .jet(462384, 19)
+        .unit()
+        .comp(2, 1)
+        .witness_preamble(0)
+        .program_finished()
+        .unwrap_err()
+        .unwrap_padding();
+    let cmr = Cmr::comp(Cmr::jet(Elements::Version), Cmr::unit());
+    let test_case = TestBuilder::comment("bitstream_eof/finished_jet_body")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_error(ScriptError::Ok)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * Unfinished word
+     */
+    // Program that causes SIMPLICITY_BITSTREAM_EOF iff a non-64-bit value is passed
+    fn unfinished_word_program(value: &Value) -> (Vec<u8>, Cmr) {
+        let bytes = bit_encoding::Program::program_preamble(3)
+            .word(7, value)
+            .unit()
+            .comp(2, 1)
+            .witness_preamble(0)
+            .program_finished()
+            .unwrap_err()
+            .unwrap_padding();
+        let cmr = Cmr::comp(Cmr::const_word(value), Cmr::unit());
+        (bytes, cmr)
+    }
+
+    let value = Value::u1(0);
+    let (bytes, cmr) = unfinished_word_program(&value);
+    let test_case = TestBuilder::comment("bitstream_eof/unfinished_word")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_error(ScriptError::SimplicityBitstreamEof)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * Finished word
+     */
+    let value = Value::u64(u64::MAX);
+    let (bytes, cmr) = unfinished_word_program(&value);
+    let test_case = TestBuilder::comment("bitstream_eof/finished_word")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_error(ScriptError::Ok)
         .finished()
         .unwrap();
     test_cases.push(test_case);
