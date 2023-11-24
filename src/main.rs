@@ -311,11 +311,24 @@ fn main() {
     /*
      * DAG_LEN_MAX < program length
      */
-    let dag_len_max = 8_000_000;
-    let bytes = bit_encoding::Program::program_preamble(dag_len_max + 1).parser_stops_here();
+    /// If exceeds is true, then program causes SIMPLICITY_DATA_OUT_OF_RANGE
+    ///
+    /// If exceeds is false, then program causes SIMPLICITY_BITSTREAM_EOF
+    // Too lazy to write a program of DAG_LEN_MAX many nodes
+    // Instead, test that parser goes past program length and runs out of bits to read
+    fn program_length_max_program(exceeds_max: bool) -> (Vec<u8>, Cmr) {
+        let dag_len_max = 8_000_000;
+        let bytes = bit_encoding::Program::program_preamble(dag_len_max + usize::from(exceeds_max))
+            .bits_be(u64::MAX, 6)
+            .assert_n_total_written(5 * 8)
+            .parser_stops_here();
+        let cmr = Cmr::from_byte_array([0; 32]);
+
+        (bytes, cmr)
+    }
+
     let test_case = TestBuilder::comment("data_out_of_range/program_length_exceeds_max")
-        .raw_program(bytes)
-        .raw_cmr([0; 32])
+        .raw_program_cmr(program_length_max_program(true))
         .expected_error(ScriptError::SimplicityDataOutOfRange)
         .finished();
     test_cases.push(test_case);
@@ -323,15 +336,8 @@ fn main() {
     /*
      * program length <= DAG_LEN_MAX
      */
-    // Too lazy to write a program of DAG_LEN_MAX many nodes
-    // Instead, test that parser goes past program length and runs out of bits to read
-    let bytes = bit_encoding::Program::program_preamble(dag_len_max)
-        .bits_be(u64::MAX, 6)
-        .assert_n_total_written(5 * 8)
-        .parser_stops_here();
     let test_case = TestBuilder::comment("data_out_of_range/program_length_ok")
-        .raw_program(bytes)
-        .raw_cmr([0; 32])
+        .raw_program_cmr(program_length_max_program(false))
         .expected_error(ScriptError::SimplicityBitstreamEof)
         .finished();
     test_cases.push(test_case);
