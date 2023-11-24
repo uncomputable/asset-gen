@@ -296,6 +296,24 @@ if (test_flags != (test_flags & stack[i].flags)) {
 ```
 
 - there are five flags that can be checked
+- `FLAG_TCO` not an antidos flag
+    - the C code only supports TCO evaluation
+    - the flag is set to true by `runTCO`
+- `FLAG_LAST_CASE` not an antidos flag
+    - the flag is implied by canonical order
+    - canonical order is checked before execution
+- `FLAG_CASE_LEFT | FLAG_CASE_RIGHT` implies `FLAG_EXEC`
+    - every case branch was executed
+    - besides case, every node enforces execution of all its children
+    - therefore, all nodes were executed
+- `FLAG_EXEC` does not imply `FLAG_CASE_LEFT | FLAG_CASE_RIGHT`
+    - programs are DAGs, not trees
+    - a node can have two parents: case and another parent
+    - the node is reached from the other parent but not from case
+    - the diagram below shows both possible cases
+
+![Program DAG where all nodes were executed, but not all case children](check_exec_not_check_case.png)
+
 
 ```c
 result = antiDos(anti_dos_checks, stack, dag, len);
@@ -317,20 +335,19 @@ static inline simplicity_err evalTCOProgram(const dag_node* dag, type* type_dag,
 - `evalTCOExpression(CHECK_ALL, ...)` is called by `evalTCOProgram`
     - `CHECK_ALL` is an all-ones bitmap
     - all checks are enabled
-- `FLAG_TCO` is always true
-    - the C code only supports TCO evaluation
-    - the flag is set by `runTCO`
-- `FLAG_LAST_CASE` is always true
-    - the flag is implied by canonical order
-    - canonical order is checked before execution
-- `FLAG_EXEC` is implied by `FLAG_CASE_LEFT | FLAG_CASE_RIGHT`
-    - case is the only node where branching happens
-    - if both left and right branch of every case node were executed, then all nodes were executed
 
 1. the left branch of a case node was not executed
-    - except for assertions
+   - `!FLAG_EXEC & !FLAG_CASE_LEFT`
+   - except for assertions
 2. the right branch of a case node was not executed
+    - `!FLAG_EXEC & !FLAG_CASE_RIGHT`
     - except for assertions
+3. all nodes were executed, but not the left child of case
+    - `FLAG_EXEC & !FLAG_CASE_LEFT`
+    - the left child was reached by a separate parent in the program DAG
+4. all nodes were executed, but not the right child of case
+    - `FLAG_EXEC & !FLAG_CASE_RIGHT`
+    - the right child was reached by a separate parent in the program DAG
 
 # `SCRIPT_ERR_SIMPLICITY_HIDDEN_ROOT = 85`
 
