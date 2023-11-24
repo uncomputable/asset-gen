@@ -46,10 +46,10 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * The taproot witness stack is longer than 3 elements
+     * Taproot witness stack is longer than 3 elements
      */
     let s = "main := unit";
-    let test_case = TestBuilder::comment("wrong_length/extra_script_input")
+    let test_case = TestBuilder::comment("wrong_length/multiple_script_inputs")
         .human_encoding(s, &empty_witness)
         .extra_script_input(vec![0x00])
         .expected_error(ScriptError::SimplicityWrongLength)
@@ -58,10 +58,39 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * The CMR is shorter than 32 bytes
+     * Taproot witness stack is shorter than 3 elements
+     *
+     * Taproot enforces at least two witness stack elements:
+     * witness script + control block
+     * This is checked by the taproot test suite
+     *
+     * We check a witness stack of exactly two elements
      */
     let s = "main := unit";
-    let test_case = TestBuilder::comment("wrong_length/missing_cmr_byte")
+    let test_case = TestBuilder::comment("wrong_length/no_script_inputs")
+        .human_encoding(s, &empty_witness)
+        .skip_script_inputs()
+        .expected_error(ScriptError::SimplicityWrongLength)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * Taproot witness stack is exactly 3 elements
+     */
+    let s = "main := unit";
+    let test_case = TestBuilder::comment("wrong_length/one_script_input")
+        .human_encoding(s, &empty_witness)
+        .expected_error(ScriptError::Ok)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * CMR is shorter than 32 bytes
+     */
+    let s = "main := unit";
+    let test_case = TestBuilder::comment("wrong_length/too_short_cmr")
         .human_encoding(s, &empty_witness)
         .raw_cmr([0; 31])
         .expected_error(ScriptError::SimplicityWrongLength)
@@ -70,13 +99,24 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * The CMR is longer than 32 bytes
+     * CMR is longer than 32 bytes
      */
     let s = "main := unit";
-    let test_case = TestBuilder::comment("wrong_length/extra_cmr_byte")
+    let test_case = TestBuilder::comment("wrong_length/too_long_cmr")
         .human_encoding(s, &empty_witness)
         .raw_cmr([0; 33])
         .expected_error(ScriptError::SimplicityWrongLength)
+        .finished()
+        .unwrap();
+    test_cases.push(test_case);
+
+    /*
+     * CMR is exactly 32 bytes
+     */
+    let s = "main := unit";
+    let test_case = TestBuilder::comment("wrong_length/good_cmr")
+        .human_encoding(s, &empty_witness)
+        .expected_error(ScriptError::Ok)
         .finished()
         .unwrap();
     test_cases.push(test_case);
