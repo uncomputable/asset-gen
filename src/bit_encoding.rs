@@ -10,6 +10,10 @@ pub struct Encoder {
 }
 
 impl Encoder {
+    pub fn n_total_written(&self) -> usize {
+        self.queue.iter().map(|x| usize::from(x.1)).sum()
+    }
+
     pub fn bits_be(&mut self, bits: u64, bit_len: u8) {
         self.queue.push_back((bits, bit_len));
     }
@@ -101,6 +105,14 @@ pub trait Builder: Sized + AsMut<Encoder> + Into<Encoder> {
 
     fn delete_bits(mut self, bit_len: usize) -> Self {
         self.as_mut().delete_bits(bit_len);
+        self
+    }
+
+    fn assert_n_total_written(mut self, bit_len: usize) -> Self {
+        let n_total_written = self.as_mut().n_total_written();
+        if n_total_written != bit_len {
+            panic!("{} bits written, not {}", n_total_written, bit_len);
+        }
         self
     }
 
