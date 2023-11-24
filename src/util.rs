@@ -91,13 +91,10 @@ pub fn get_witness_stack(
     witness_stack
 }
 
-pub fn program_from_string<J: Jet>(
+pub fn program_from_string(
     s: &str,
     witness: &HashMap<Arc<str>, Arc<simplicity::Value>>,
-) -> Result<Arc<RedeemNode<J>>, String> {
-    let forest = simplicity::human_encoding::Forest::parse(s).map_err(|e| e.to_string())?;
-    forest
-        .to_witness_node(witness)
-        .finalize()
-        .map_err(|e| e.to_string())
+) -> Arc<RedeemNode<Elements>> {
+    let forest = simplicity::human_encoding::Forest::parse(s).unwrap();
+    forest.to_witness_node(witness).finalize().unwrap()
 }

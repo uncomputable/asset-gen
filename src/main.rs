@@ -612,7 +612,7 @@ fn main() {
     fn trailing_bytes_program(trailing_byte: bool) -> (Vec<u8>, Cmr) {
         let s = "main := unit";
         let empty_witness = HashMap::new();
-        let program = util::program_from_string::<Elements>(s, &empty_witness).unwrap();
+        let program = util::program_from_string(s, &empty_witness);
         let mut bytes = program.encode_to_vec();
         if trailing_byte {
             bytes.push(0x00);

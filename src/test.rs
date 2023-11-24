@@ -101,10 +101,8 @@ impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> TestBuilder<B, C, E> {
         s: &str,
         witness: &HashMap<Arc<str>, Arc<simplicity::Value>>,
     ) -> TestBuilder<Bytes, Cmr, E> {
-        match util::program_from_string::<Elements>(s, witness) {
-            Err(error) => panic!("Human encoding error: {}", error),
-            Ok(program) => self.program(&program),
-        }
+        let program = util::program_from_string(s, witness);
+        self.program(&program)
     }
 
     pub fn extra_script_input(mut self, script_input: Vec<u8>) -> Self {
