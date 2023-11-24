@@ -28,62 +28,7 @@ impl MaybeError for NoError {}
 impl MaybeError for Error {}
 
 #[derive(Debug)]
-pub struct TestBuilder<B: MaybeBytes, C: MaybeCmr, E: MaybeError>(
-    Result<BuilderInner<B, C, E>, String>,
-);
-
-impl TestBuilder<NoBytes, NoCmr, NoError> {
-    pub fn comment(comment: &'static str) -> Self {
-        Self(Ok(BuilderInner::comment(comment)))
-    }
-}
-
-impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> TestBuilder<B, C, E> {
-    pub fn raw_program(self, bytes: Vec<u8>) -> TestBuilder<Bytes, C, E> {
-        TestBuilder(self.0.map(|inner| inner.raw_program(bytes)))
-    }
-
-    pub fn raw_cmr<A: AsRef<[u8]>>(self, cmr: A) -> TestBuilder<B, Cmr, E> {
-        TestBuilder(self.0.map(|inner| inner.raw_cmr(cmr)))
-    }
-
-    pub fn program(self, program: &RedeemNode<Elements>) -> TestBuilder<Bytes, Cmr, E> {
-        TestBuilder(self.0.map(|inner| inner.program(program)))
-    }
-
-    pub fn human_encoding(
-        self,
-        s: &str,
-        witness: &HashMap<Arc<str>, Arc<simplicity::Value>>,
-    ) -> TestBuilder<Bytes, Cmr, E> {
-        TestBuilder(self.0.and_then(|inner| inner.human_encoding(s, witness)))
-    }
-
-    pub fn extra_script_input(self, script_input: Vec<u8>) -> Self {
-        Self(self.0.map(|inner| inner.extra_script_input(script_input)))
-    }
-
-    pub fn skip_script_inputs(self) -> Self {
-        Self(self.0.map(|inner| inner.skip_script_inputs()))
-    }
-
-    pub fn reset_cost(self) -> Self {
-        Self(self.0.map(|inner| inner.reset_cost()))
-    }
-
-    pub fn expected_error(self, error: ScriptError) -> TestBuilder<B, C, Error> {
-        TestBuilder(self.0.map(|inner| inner.expected_error(error)))
-    }
-}
-
-impl TestBuilder<Bytes, Cmr, Error> {
-    pub fn finished(self) -> Result<TestCase, String> {
-        self.0.map(|inner| inner.finished())
-    }
-}
-
-#[derive(Debug)]
-struct BuilderInner<B: MaybeBytes, C: MaybeCmr, E: MaybeError> {
+pub struct TestBuilder<B: MaybeBytes, C: MaybeCmr, E: MaybeError> {
     comment: &'static str,
     program_bytes: B,
     cmr: C,
@@ -93,7 +38,7 @@ struct BuilderInner<B: MaybeBytes, C: MaybeCmr, E: MaybeError> {
     skip_script_inputs: bool,
 }
 
-impl BuilderInner<NoBytes, NoCmr, NoError> {
+impl TestBuilder<NoBytes, NoCmr, NoError> {
     pub fn comment(comment: &'static str) -> Self {
         Self {
             comment,
@@ -107,9 +52,9 @@ impl BuilderInner<NoBytes, NoCmr, NoError> {
     }
 }
 
-impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> BuilderInner<B, C, E> {
-    pub fn raw_program(self, bytes: Vec<u8>) -> BuilderInner<Bytes, C, E> {
-        BuilderInner {
+impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> TestBuilder<B, C, E> {
+    pub fn raw_program(self, bytes: Vec<u8>) -> TestBuilder<Bytes, C, E> {
+        TestBuilder {
             comment: self.comment,
             program_bytes: Bytes(bytes),
             cmr: self.cmr,
@@ -120,8 +65,8 @@ impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> BuilderInner<B, C, E> {
         }
     }
 
-    pub fn raw_cmr<A: AsRef<[u8]>>(self, cmr: A) -> BuilderInner<B, Cmr, E> {
-        BuilderInner {
+    pub fn raw_cmr<A: AsRef<[u8]>>(self, cmr: A) -> TestBuilder<B, Cmr, E> {
+        TestBuilder {
             comment: self.comment,
             program_bytes: self.program_bytes,
             cmr: Cmr(cmr.as_ref().to_vec()),
@@ -132,8 +77,8 @@ impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> BuilderInner<B, C, E> {
         }
     }
 
-    pub fn program(self, program: &RedeemNode<Elements>) -> BuilderInner<Bytes, Cmr, E> {
-        BuilderInner {
+    pub fn program(self, program: &RedeemNode<Elements>) -> TestBuilder<Bytes, Cmr, E> {
+        TestBuilder {
             comment: self.comment,
             program_bytes: Bytes(program.encode_to_vec()),
             cmr: Cmr(program.cmr().to_byte_array().to_vec()),
@@ -148,9 +93,11 @@ impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> BuilderInner<B, C, E> {
         self,
         s: &str,
         witness: &HashMap<Arc<str>, Arc<simplicity::Value>>,
-    ) -> Result<BuilderInner<Bytes, Cmr, E>, String> {
-        let program = util::program_from_string::<Elements>(s, witness)?;
-        Ok(self.program(&program))
+    ) -> TestBuilder<Bytes, Cmr, E> {
+        match util::program_from_string::<Elements>(s, witness) {
+            Err(error) => panic!("Human encoding error: {}", error),
+            Ok(program) => self.program(&program),
+        }
     }
 
     pub fn extra_script_input(mut self, script_input: Vec<u8>) -> Self {
@@ -168,8 +115,8 @@ impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> BuilderInner<B, C, E> {
         self
     }
 
-    pub fn expected_error(self, error: ScriptError) -> BuilderInner<B, C, Error> {
-        BuilderInner {
+    pub fn expected_error(self, error: ScriptError) -> TestBuilder<B, C, Error> {
+        TestBuilder {
             comment: self.comment,
             program_bytes: self.program_bytes,
             cmr: self.cmr,
@@ -181,7 +128,7 @@ impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> BuilderInner<B, C, E> {
     }
 }
 
-impl BuilderInner<Bytes, Cmr, Error> {
+impl TestBuilder<Bytes, Cmr, Error> {
     pub fn finished(self) -> TestCase {
         let program_bytes = self.program_bytes.0;
         let cmr = self.cmr.0;
