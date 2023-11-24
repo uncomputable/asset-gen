@@ -29,7 +29,7 @@ impl MaybeError for Error {}
 
 #[derive(Debug)]
 pub struct TestBuilder<B: MaybeBytes, C: MaybeCmr, E: MaybeError> {
-    comment: &'static str,
+    comment: String,
     program_bytes: B,
     cmr: C,
     extra_script_inputs: Vec<Vec<u8>>,
@@ -39,9 +39,9 @@ pub struct TestBuilder<B: MaybeBytes, C: MaybeCmr, E: MaybeError> {
 }
 
 impl TestBuilder<NoBytes, NoCmr, NoError> {
-    pub fn comment(comment: &'static str) -> Self {
+    pub fn comment<A: Into<String>>(comment: A) -> Self {
         Self {
-            comment,
+            comment: comment.into(),
             program_bytes: NoBytes,
             cmr: NoCmr,
             extra_script_inputs: vec![],
