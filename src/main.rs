@@ -464,17 +464,38 @@ fn main() {
     /*
      * Program is not serialized in canonical order
      */
-    let bytes = bit_encoding::Program::program_preamble(3)
-        .unit()
-        .iden()
-        .comp(1, 2)
-        .witness_preamble(0)
-        .program_finished();
-    let cmr = Cmr::comp(Cmr::unit(), Cmr::iden());
+    /// Program that causes SIMPLICITY_DATA_OUT_OF_ORDER iff canonical is false
+    fn canonical_order_program(canonical: bool) -> (Vec<u8>, Cmr) {
+        let (left_offset, right_offset) = match canonical {
+            false => (1, 2),
+            true => (2, 1),
+        };
+        let bytes = bit_encoding::Program::program_preamble(3)
+            .unit()
+            .iden()
+            .comp(left_offset, right_offset)
+            .witness_preamble(0)
+            .program_finished();
+        let cmr = Cmr::comp(Cmr::unit(), Cmr::iden());
+        (bytes, cmr)
+    }
+
+    let (bytes, cmr) = canonical_order_program(false);
     let test_case = TestBuilder::comment("data_out_of_order/not_in_canonical_order")
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_error(ScriptError::SimplicityDataOutOfOrder)
+        .finished();
+    test_cases.push(test_case);
+
+    /*
+     * Program is serialized in canonical order
+     */
+    let (bytes, cmr) = canonical_order_program(true);
+    let test_case = TestBuilder::comment("data_out_of_order/in_canonical_order")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
 
