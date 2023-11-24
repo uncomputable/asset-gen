@@ -63,6 +63,10 @@ impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> TestBuilder<B, C, E> {
         Self(self.0.map(|inner| inner.extra_script_input(script_input)))
     }
 
+    pub fn skip_script_inputs(self) -> Self {
+        Self(self.0.map(|inner| inner.skip_script_inputs()))
+    }
+
     pub fn reset_cost(self) -> Self {
         Self(self.0.map(|inner| inner.reset_cost()))
     }
@@ -86,6 +90,7 @@ struct BuilderInner<B: MaybeBytes, C: MaybeCmr, E: MaybeError> {
     extra_script_inputs: Vec<Vec<u8>>,
     cost: Option<Cost>,
     error: E,
+    skip_script_inputs: bool,
 }
 
 impl BuilderInner<NoBytes, NoCmr, NoError> {
@@ -97,6 +102,7 @@ impl BuilderInner<NoBytes, NoCmr, NoError> {
             extra_script_inputs: vec![],
             cost: None,
             error: NoError,
+            skip_script_inputs: false,
         }
     }
 }
@@ -110,6 +116,7 @@ impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> BuilderInner<B, C, E> {
             extra_script_inputs: self.extra_script_inputs,
             cost: self.cost,
             error: self.error,
+            skip_script_inputs: self.skip_script_inputs,
         }
     }
 
@@ -121,6 +128,7 @@ impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> BuilderInner<B, C, E> {
             extra_script_inputs: self.extra_script_inputs,
             cost: self.cost,
             error: self.error,
+            skip_script_inputs: self.skip_script_inputs,
         }
     }
 
@@ -132,6 +140,7 @@ impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> BuilderInner<B, C, E> {
             extra_script_inputs: self.extra_script_inputs,
             cost: Some(program.bounds().cost),
             error: self.error,
+            skip_script_inputs: self.skip_script_inputs,
         }
     }
 
@@ -149,6 +158,11 @@ impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> BuilderInner<B, C, E> {
         self
     }
 
+    pub fn skip_script_inputs(mut self) -> Self {
+        self.skip_script_inputs = true;
+        self
+    }
+
     pub fn reset_cost(mut self) -> Self {
         self.cost = None;
         self
@@ -162,6 +176,7 @@ impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> BuilderInner<B, C, E> {
             extra_script_inputs: self.extra_script_inputs,
             cost: self.cost,
             error: Error(error),
+            skip_script_inputs: self.skip_script_inputs,
         }
     }
 }
@@ -182,8 +197,13 @@ impl BuilderInner<Bytes, Cmr, Error> {
         let funding_tx = get_funding_tx(&spend_info);
         let spending_tx = get_spending_tx(&funding_tx);
 
-        let mut script_inputs = vec![program_bytes];
-        script_inputs.extend(self.extra_script_inputs);
+        let script_inputs = if self.skip_script_inputs {
+            vec![]
+        } else {
+            let mut script_inputs = vec![program_bytes];
+            script_inputs.extend(self.extra_script_inputs);
+            script_inputs
+        };
         let script = util::to_script(cmr);
         let mut witness = util::get_witness_stack(script_inputs, script, control_block);
 
