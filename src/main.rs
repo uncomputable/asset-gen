@@ -10,7 +10,7 @@ use std::io::Write;
 use simplicity::jet::Elements;
 use simplicity::{Cmr, FailEntropy, Value};
 
-use crate::bit_encoding::Builder;
+use crate::bit_encoding::BitBuilder;
 use crate::json::ScriptError;
 use crate::test::TestBuilder;
 
@@ -121,7 +121,7 @@ fn main() {
     /*
      * Unfinished program length
      */
-    let bytes = bit_encoding::Program::program_preamble(16)
+    let bytes = BitBuilder::program_preamble(16)
         .assert_n_total_written(8 + 3)
         .delete_bits(3)
         .parser_stops_here();
@@ -135,7 +135,7 @@ fn main() {
     /*
      * Unfinished combinator body
      */
-    let bytes = bit_encoding::Program::program_preamble(3)
+    let bytes = BitBuilder::program_preamble(3)
         .unit()
         .iden()
         .comp(2, 1)
@@ -153,7 +153,7 @@ fn main() {
     /*
      * Unfinished combinator child index
      */
-    let bytes = bit_encoding::Program::program_preamble(4) // Increase len for more bits
+    let bytes = BitBuilder::program_preamble(4) // Increase len for more bits
         .unit()
         .iden()
         .comp(2, 1)
@@ -171,7 +171,7 @@ fn main() {
     /*
      * Finished combinator body + child indices
      */
-    let bytes = bit_encoding::Program::program_preamble(3)
+    let bytes = BitBuilder::program_preamble(3)
         .unit()
         .iden()
         .comp(2, 1)
@@ -188,7 +188,7 @@ fn main() {
     /*
      * Unfinished witness length
      */
-    let bytes = bit_encoding::Program::program_preamble(1)
+    let bytes = BitBuilder::program_preamble(1)
         .unit()
         .witness_preamble(16)
         .assert_n_total_written(2 * 8 + 2)
@@ -205,7 +205,7 @@ fn main() {
     /*
      * Unfinished witness block
      */
-    let bytes = bit_encoding::Program::program_preamble(1)
+    let bytes = BitBuilder::program_preamble(1)
         .unit()
         .witness_preamble(1)
         .bits_be(u64::default(), 0) // No bits means we declared too many
@@ -221,7 +221,7 @@ fn main() {
     /*
      * Unfinished witness block (C test vector)
      */
-    let bytes = bit_encoding::Program::program_preamble(1)
+    let bytes = BitBuilder::program_preamble(1)
         .unit()
         .witness_preamble((1 << 31) - 1)
         .bits_be(u64::default(), 0) // No bits means we declared too many
@@ -239,7 +239,7 @@ fn main() {
      *
      * XXX: Potentially flaky because jet encodings may change
      */
-    let bytes = bit_encoding::Program::program_preamble(3)
+    let bytes = BitBuilder::program_preamble(3)
         .jet(462384, 19)
         .assert_n_total_written(3 * 8)
         .delete_bits(8)
@@ -257,7 +257,7 @@ fn main() {
      *
      * XXX: Potentially flaky because jet encodings may change
      */
-    let bytes = bit_encoding::Program::program_preamble(3)
+    let bytes = BitBuilder::program_preamble(3)
         .jet(462384, 19)
         .unit()
         .comp(2, 1)
@@ -276,7 +276,7 @@ fn main() {
      */
     // Program that causes SIMPLICITY_BITSTREAM_EOF iff a non-64-bit value is passed
     fn unfinished_word_program(value: &Value) -> (Vec<u8>, Cmr) {
-        let bytes = bit_encoding::Program::program_preamble(3)
+        let bytes = BitBuilder::program_preamble(3)
             .word(7, value)
             .unit()
             .comp(2, 1)
@@ -313,7 +313,7 @@ fn main() {
     // Instead, test that parser goes past program length and runs out of bits to read
     fn program_length_max_program(exceeds_max: bool) -> (Vec<u8>, Cmr) {
         let dag_len_max = 8_000_000;
-        let bytes = bit_encoding::Program::program_preamble(dag_len_max + usize::from(exceeds_max))
+        let bytes = BitBuilder::program_preamble(dag_len_max + usize::from(exceeds_max))
             .bits_be(u64::MAX, 6)
             .assert_n_total_written(5 * 8)
             .parser_stops_here();
@@ -346,7 +346,7 @@ fn main() {
     // Too lazy to write 2^31 - 1 many bits = 2 GiB!
     // Instead, test that parser goes past witness length and runs out of bits to read
     fn witness_length_program(bit_len: usize) -> (Vec<u8>, Cmr) {
-        let bytes = bit_encoding::Program::program_preamble(3)
+        let bytes = BitBuilder::program_preamble(3)
             .witness()
             .unit()
             .comp(2, 1)
@@ -376,7 +376,7 @@ fn main() {
      */
     /// Program causes SIMPLICITY_DATA_OUT_OF_RANGE iff 1 < left_offset
     fn combinator_child_index_program(left_offset: usize) -> (Vec<u8>, Cmr) {
-        let bytes = bit_encoding::Program::program_preamble(2)
+        let bytes = BitBuilder::program_preamble(2)
             .unit()
             .comp(left_offset, 1)
             .witness_preamble(0)
@@ -403,7 +403,7 @@ fn main() {
     /*
      * Jet is not defined
      */
-    let bytes = bit_encoding::Program::program_preamble(1)
+    let bytes = BitBuilder::program_preamble(1)
         .jet(u64::MAX, 64) // It is unlikely that all-ones will become a jet soon
         .witness_preamble(0)
         .program_finished();
@@ -424,7 +424,7 @@ fn main() {
     // Instead, test that parser goes past word depth and runs out of bits to read
     fn word_depth_program(depth: usize) -> (Vec<u8>, Cmr) {
         let value = Value::u1(0);
-        let bytes = bit_encoding::Program::program_preamble(1)
+        let bytes = BitBuilder::program_preamble(1)
             .word(depth, &value)
             .parser_stops_here();
         let cmr = Cmr::from_byte_array([0; 32]);
@@ -455,7 +455,7 @@ fn main() {
             false => (1, 2),
             true => (2, 1),
         };
-        let bytes = bit_encoding::Program::program_preamble(3)
+        let bytes = BitBuilder::program_preamble(3)
             .unit()
             .iden()
             .comp(left_offset, right_offset)
@@ -484,7 +484,7 @@ fn main() {
      * Program contains a `fail` node
      */
     let entropy = FailEntropy::from_byte_array([0; 64]);
-    let bytes = bit_encoding::Program::program_preamble(1)
+    let bytes = BitBuilder::program_preamble(1)
         .fail(entropy)
         .witness_preamble(0)
         .program_finished();
@@ -499,9 +499,7 @@ fn main() {
     /*
      * Program contains the stop code
      */
-    let bytes = bit_encoding::Program::program_preamble(1)
-        .stop()
-        .parser_stops_here();
+    let bytes = BitBuilder::program_preamble(1).stop().parser_stops_here();
     let test_case = TestBuilder::comment("stop_code/stop_code")
         .raw_program(bytes)
         .raw_cmr([0; 32])
@@ -515,7 +513,7 @@ fn main() {
     /// Program causes SIMPLICITY_HIDDEN iff left_hidden is true
     fn comp_hidden_child_program(left_hidden: bool) -> (Vec<u8>, Cmr) {
         let unit = Cmr::unit();
-        let mut builder = bit_encoding::Program::program_preamble(2);
+        let mut builder = BitBuilder::program_preamble(2);
 
         if left_hidden {
             builder = builder.hidden(unit).comp(1, 1);
@@ -551,7 +549,7 @@ fn main() {
         let take_unit = Cmr::take(Cmr::unit());
         let value = Value::u1(u8::from(hide_left));
 
-        let mut builder = bit_encoding::Program::program_preamble(7)
+        let mut builder = BitBuilder::program_preamble(7)
             .word(1, &value) // 1 → 2
             .unit() // 1 → 1
             .pair(2, 1); // 1 → 2 × 1
@@ -642,7 +640,7 @@ fn main() {
      */
     /// Program causes SIMPLICITY_BITSTREAM_UNUSED_BITS iff pad_with = true
     fn illegal_padding_program(pad_with: bool) -> (Vec<u8>, Cmr) {
-        let bytes = bit_encoding::Program::program_preamble(1)
+        let bytes = BitBuilder::program_preamble(1)
             .unit()
             .witness_preamble(0)
             .illegal_padding()
@@ -675,7 +673,7 @@ fn main() {
      * take unit: 1 × B → 1
      * comp unit (take unit) fails to unify
      */
-    let bytes = bit_encoding::Program::program_preamble(3)
+    let bytes = BitBuilder::program_preamble(3)
         .unit()
         .take(1)
         .comp(2, 1)
@@ -698,7 +696,7 @@ fn main() {
      * pair word(0) (take unit) fails to unify
      */
     let value = Value::u1(0);
-    let bytes = bit_encoding::Program::program_preamble(4)
+    let bytes = BitBuilder::program_preamble(4)
         .word(1, &value)
         .unit()
         .take(1)
@@ -723,7 +721,7 @@ fn main() {
      */
     let small_value = Value::u1(0);
     let large_value = Value::u2(0);
-    let bytes = bit_encoding::Program::program_preamble(5)
+    let bytes = BitBuilder::program_preamble(5)
         .word(1, &small_value)
         .take(1)
         .word(2, &large_value)
@@ -751,7 +749,7 @@ fn main() {
      * case word(0) (take unit) fails to unify
      */
     let value = Value::u1(0);
-    let bytes = bit_encoding::Program::program_preamble(4)
+    let bytes = BitBuilder::program_preamble(4)
         .word(1, &value)
         .unit()
         .take(1)
@@ -774,7 +772,7 @@ fn main() {
      * case (take unit) word(0) fails to unify
      */
     let value = Value::u1(0);
-    let bytes = bit_encoding::Program::program_preamble(4)
+    let bytes = BitBuilder::program_preamble(4)
         .unit()
         .take(1)
         .word(1, &value)
@@ -797,7 +795,7 @@ fn main() {
      * disconnect word(0) iden fails to unify
      */
     let value = Value::u1(0);
-    let bytes = bit_encoding::Program::program_preamble(3)
+    let bytes = BitBuilder::program_preamble(3)
         .word(1, &value)
         .iden()
         .disconnect(2, 1)
@@ -818,7 +816,7 @@ fn main() {
      * iden: C → D
      * disconnect unit iden fails to unify
      */
-    let bytes = bit_encoding::Program::program_preamble(3)
+    let bytes = BitBuilder::program_preamble(3)
         .unit()
         .iden()
         .disconnect(2, 1)
@@ -839,7 +837,7 @@ fn main() {
      * iden:      C     → C
      * case (drop iden) iden fails the occurs check
      */
-    let bytes = bit_encoding::Program::program_preamble(4)
+    let bytes = BitBuilder::program_preamble(4)
         .iden()
         .drop(1)
         .iden()
@@ -861,7 +859,7 @@ fn main() {
     ///
     /// take unit: A × B → 1
     fn root_source_type_program(is_unit: bool) -> (Vec<u8>, Cmr) {
-        let mut builder = bit_encoding::Program::program_preamble(1 + usize::from(!is_unit)).unit();
+        let mut builder = BitBuilder::program_preamble(1 + usize::from(!is_unit)).unit();
         let mut cmr = Cmr::unit();
         if !is_unit {
             builder = builder.take(1);
@@ -893,7 +891,7 @@ fn main() {
     ///
     /// pair unit unit: A → 1 × 1
     fn root_target_type_program(is_unit: bool) -> (Vec<u8>, Cmr) {
-        let mut builder = bit_encoding::Program::program_preamble(1 + usize::from(!is_unit)).unit();
+        let mut builder = BitBuilder::program_preamble(1 + usize::from(!is_unit)).unit();
         let mut cmr = Cmr::unit();
         if !is_unit {
             builder = builder.pair(1, 1);
@@ -921,7 +919,7 @@ fn main() {
     /*
      * Parse next witness value, but bitstring is EOF
      */
-    let bytes = bit_encoding::Program::program_preamble(5)
+    let bytes = BitBuilder::program_preamble(5)
         .witness() // 1 → (1 + 1) * 1 means bit size = 1
         .unit()
         .take(1)
@@ -943,7 +941,7 @@ fn main() {
     /*
      * Parse next bit of witness value, but bitstring is EOF
      */
-    let bytes = bit_encoding::Program::program_preamble(6)
+    let bytes = BitBuilder::program_preamble(6)
         .witness() // 1 → ((1 + 1) + (1 + 1)) × 1 means bit size = 2
         .unit()
         .take(1)
@@ -972,7 +970,7 @@ fn main() {
      */
     /// Program causes SIMPLICITY_WITNESS_TRAILING_BITS iff trailing_bit is true
     fn trailing_bits_program(trailing_bit: bool) -> (Vec<u8>, Cmr) {
-        let bytes = bit_encoding::Program::program_preamble(3)
+        let bytes = BitBuilder::program_preamble(3)
             .witness()
             .unit()
             .comp(2, 1)
@@ -1004,8 +1002,7 @@ fn main() {
      */
     /// Program is maximally shared iff duplicate is false
     fn duplicate_imr_program(duplicate: bool) -> (Vec<u8>, Cmr) {
-        let mut builder =
-            bit_encoding::Program::program_preamble(2 + usize::from(duplicate)).unit();
+        let mut builder = BitBuilder::program_preamble(2 + usize::from(duplicate)).unit();
         if duplicate {
             builder = builder.unit().comp(2, 1);
         } else {
@@ -1038,7 +1035,7 @@ fn main() {
     /// Program is maximally shared iff cmr1 == cmr2
     fn duplicate_hidden_program(cmr1: Cmr, cmr2: Cmr) -> (Vec<u8>, Cmr) {
         // FIXME: Use rust-simplicity encoder with sharing of hidden nodes disabled, once implemented
-        let bytes = bit_encoding::Program::program_preamble(13)
+        let bytes = BitBuilder::program_preamble(13)
             // scribe ([1], [])
             .unit() // 1 → 1
             .injr(1) // 1 → 1 + 1
@@ -1361,7 +1358,7 @@ fn main() {
      * Program root is hidden
      */
     let hidden_cmr = Cmr::from_byte_array([0; 32]);
-    let bytes = bit_encoding::Program::program_preamble(1)
+    let bytes = BitBuilder::program_preamble(1)
         .hidden(hidden_cmr)
         .parser_stops_here();
     let test_case = TestBuilder::comment("hidden_root/hidden_root")

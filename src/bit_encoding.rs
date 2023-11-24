@@ -1,28 +1,48 @@
 use std::collections::VecDeque;
+use std::marker::PhantomData;
 
 use simplicity::{encode, BitWriter, Value};
 
-#[derive(Debug, Default)]
-pub struct Encoder {
+pub trait Stage {}
+pub struct Program;
+pub struct Witness;
+pub struct IllegalPadding;
+impl Stage for Program {}
+impl Stage for Witness {}
+impl Stage for IllegalPadding {}
+
+#[derive(Debug)]
+pub struct BitBuilder<S: Stage> {
     queue: VecDeque<(u64, u8)>,
+    stage: PhantomData<S>,
 }
 
-impl Encoder {
-    pub fn n_total_written(&self) -> usize {
+impl<S: Stage> BitBuilder<S> {
+    fn n_total_written(&self) -> usize {
         self.queue.iter().map(|x| usize::from(x.1)).sum()
     }
 
-    pub fn bits_be(&mut self, bits: u64, bit_len: u8) {
-        self.queue.push_back((bits, bit_len));
-    }
-
-    pub fn bytes_be<A: AsRef<[u8]>>(&mut self, bytes: A) {
-        for byte in bytes.as_ref() {
-            self.bits_be(u64::from(*byte), 8);
+    pub fn assert_n_total_written(self, bit_len: usize) -> Self {
+        let n_total_written = self.n_total_written();
+        if n_total_written != bit_len {
+            panic!("{} bits written, not {}", n_total_written, bit_len);
         }
+        self
     }
 
-    pub fn positive_integer(&mut self, n: usize) {
+    pub fn bits_be(mut self, bits: u64, bit_len: u8) -> Self {
+        self.queue.push_back((bits, bit_len));
+        self
+    }
+
+    pub fn bytes_be<A: AsRef<[u8]>>(mut self, bytes: A) -> Self {
+        for byte in bytes.as_ref() {
+            self = self.bits_be(u64::from(*byte), 8);
+        }
+        self
+    }
+
+    pub fn positive_integer(mut self, n: usize) -> Self {
         let mut bytes = Vec::new();
         let mut writer = BitWriter::new(&mut bytes);
         let bit_len = encode::encode_natural(n, &mut writer).expect("I/O to vector never fails");
@@ -30,9 +50,10 @@ impl Encoder {
 
         let words = bytes_to_words(&bytes, bit_len);
         self.queue.extend(words);
+        self
     }
 
-    pub fn value(&mut self, value: &Value) {
+    pub fn value(mut self, value: &Value) -> Self {
         let mut bytes = Vec::new();
         let mut writer = BitWriter::new(&mut bytes);
         let bit_len = encode::encode_value(value, &mut writer).expect("I/O to vector never fails");
@@ -40,9 +61,10 @@ impl Encoder {
 
         let words = bytes_to_words(&bytes, bit_len);
         self.queue.extend(words);
+        self
     }
 
-    pub fn delete_bits(&mut self, mut bit_len: usize) {
+    pub fn delete_bits(mut self, mut bit_len: usize) -> Self {
         while bit_len > 0 {
             if let Some((word, word_len)) = self.queue.pop_back() {
                 if usize::from(word_len) <= bit_len {
@@ -57,9 +79,10 @@ impl Encoder {
                 }
             }
         }
+        self
     }
 
-    pub fn get_bytes(mut self) -> Vec<u8> {
+    fn get_bytes(mut self) -> Vec<u8> {
         let mut bytes = Vec::new();
         let mut writer = BitWriter::new(&mut bytes);
 
@@ -72,69 +95,17 @@ impl Encoder {
         writer.flush_all().expect("I/O to vector never fails");
         bytes
     }
-}
 
-pub trait Builder: Sized + AsMut<Encoder> + Into<Encoder> {
-    fn bits_be(mut self, bits: u64, bit_len: u8) -> Self {
-        self.as_mut().bits_be(bits, bit_len);
-        self
-    }
-
-    fn bytes_be<A: AsRef<[u8]>>(mut self, bytes: A) -> Self {
-        self.as_mut().bytes_be(bytes);
-        self
-    }
-
-    fn positive_integer(mut self, n: usize) -> Self {
-        self.as_mut().positive_integer(n);
-        self
-    }
-
-    fn value(mut self, value: &Value) -> Self {
-        self.as_mut().value(value);
-        self
-    }
-
-    fn delete_bits(mut self, bit_len: usize) -> Self {
-        self.as_mut().delete_bits(bit_len);
-        self
-    }
-
-    fn assert_n_total_written(mut self, bit_len: usize) -> Self {
-        let n_total_written = self.as_mut().n_total_written();
-        if n_total_written != bit_len {
-            panic!("{} bits written, not {}", n_total_written, bit_len);
-        }
-        self
-    }
-
-    fn parser_stops_here(self) -> Vec<u8> {
-        self.into().get_bytes()
+    pub fn parser_stops_here(self) -> Vec<u8> {
+        self.get_bytes()
     }
 }
 
-pub struct Program {
-    encoder: Encoder,
-}
-
-impl AsMut<Encoder> for Program {
-    fn as_mut(&mut self) -> &mut Encoder {
-        &mut self.encoder
-    }
-}
-
-impl From<Program> for Encoder {
-    fn from(program: Program) -> Self {
-        program.encoder
-    }
-}
-
-impl Builder for Program {}
-
-impl Program {
+impl BitBuilder<Program> {
     pub fn program_preamble(len: usize) -> Self {
         Self {
-            encoder: Encoder::default(),
+            queue: VecDeque::new(),
+            stage: PhantomData,
         }
         .positive_integer(len)
     }
@@ -211,65 +182,31 @@ impl Program {
         self.bits_be(0b0111, 4)
     }
 
-    pub fn witness_preamble(self, len: usize) -> Witness {
-        let program = match len {
+    pub fn witness_preamble(mut self, len: usize) -> BitBuilder<Witness> {
+        self = match len {
             0 => self.bits_be(0b0, 1),
             _ => self.bits_be(0b1, 1).positive_integer(len),
         };
 
-        Witness {
-            encoder: program.encoder,
+        BitBuilder {
+            queue: self.queue,
+            stage: PhantomData,
         }
     }
 }
 
-pub struct Witness {
-    encoder: Encoder,
-}
-
-impl AsMut<Encoder> for Witness {
-    fn as_mut(&mut self) -> &mut Encoder {
-        &mut self.encoder
-    }
-}
-
-impl From<Witness> for Encoder {
-    fn from(witness: Witness) -> Self {
-        witness.encoder
-    }
-}
-
-impl Builder for Witness {}
-
-impl Witness {
+impl BitBuilder<Witness> {
     pub fn program_finished(self) -> Vec<u8> {
         self.parser_stops_here()
     }
 
-    pub fn illegal_padding(self) -> IllegalPadding {
-        IllegalPadding {
-            encoder: self.encoder,
+    pub fn illegal_padding(self) -> BitBuilder<IllegalPadding> {
+        BitBuilder {
+            queue: self.queue,
+            stage: PhantomData,
         }
     }
 }
-
-pub struct IllegalPadding {
-    encoder: Encoder,
-}
-
-impl AsMut<Encoder> for IllegalPadding {
-    fn as_mut(&mut self) -> &mut Encoder {
-        &mut self.encoder
-    }
-}
-
-impl From<IllegalPadding> for Encoder {
-    fn from(padding: IllegalPadding) -> Self {
-        padding.encoder
-    }
-}
-
-impl Builder for IllegalPadding {}
 
 /// Takes a byte slice with padding at the least significant bits of the final byte.
 /// Returns a vector of words with padding at the most significant bits of the final word.
