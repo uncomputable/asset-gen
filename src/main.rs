@@ -861,37 +861,65 @@ fn main() {
 
     /*
      * Source of program root is not unit
-     *
-     * take unit: A × B → 1
      */
-    let bytes = bit_encoding::Program::program_preamble(2)
-        .unit()
-        .take(1)
-        .witness_preamble(0)
-        .program_finished();
-    let cmr = Cmr::take(Cmr::unit());
-    let test_case = TestBuilder::comment("type_inference_not_program/root_source_type")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+    /// Program root has unit source type iff is_unit is true
+    ///
+    /// take unit: A × B → 1
+    fn root_source_type_program(is_unit: bool) -> (Vec<u8>, Cmr) {
+        let mut builder = bit_encoding::Program::program_preamble(1 + usize::from(!is_unit)).unit();
+        let mut cmr = Cmr::unit();
+        if !is_unit {
+            builder = builder.take(1);
+            cmr = Cmr::take(cmr);
+        }
+        let bytes = builder.witness_preamble(0).program_finished();
+        (bytes, cmr)
+    }
+
+    let test_case = TestBuilder::comment("type_inference_not_program/root_source_not_unit")
+        .raw_program_cmr(root_source_type_program(false))
         .expected_error(ScriptError::SimplicityTypeInferenceNotProgram)
         .finished();
     test_cases.push(test_case);
 
     /*
-     * Target of program root is not unit
-     *
-     * pair unit unit: A → 1 × 1
+     * Source of program root is unit
      */
-    let bytes = bit_encoding::Program::program_preamble(2)
-        .unit()
-        .pair(1, 1)
-        .witness_preamble(0)
-        .program_finished();
-    let cmr = Cmr::pair(Cmr::unit(), Cmr::unit());
-    let test_case = TestBuilder::comment("type_inference_not_program/root_target_type")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+    let test_case = TestBuilder::comment("type_inference_not_program/root_source_is_unit")
+        .raw_program_cmr(root_source_type_program(true))
+        .expected_error(ScriptError::Ok)
+        .finished();
+    test_cases.push(test_case);
+
+    /*
+     * Target of program root is not unit
+     */
+    /// Program root has unit target type iff is_unit is true
+    ///
+    /// pair unit unit: A → 1 × 1
+    fn root_target_type_program(is_unit: bool) -> (Vec<u8>, Cmr) {
+        let mut builder = bit_encoding::Program::program_preamble(1 + usize::from(!is_unit)).unit();
+        let mut cmr = Cmr::unit();
+        if !is_unit {
+            builder = builder.pair(1, 1);
+            cmr = Cmr::pair(cmr, cmr);
+        }
+        let bytes = builder.witness_preamble(0).program_finished();
+        (bytes, cmr)
+    }
+
+    let test_case = TestBuilder::comment("type_inference_not_program/root_target_no_unit")
+        .raw_program_cmr(root_target_type_program(false))
         .expected_error(ScriptError::SimplicityTypeInferenceNotProgram)
+        .finished();
+    test_cases.push(test_case);
+
+    /*
+     * Target of program root is unit
+     */
+    let test_case = TestBuilder::comment("type_inference_not_program/root_target_is_unit")
+        .raw_program_cmr(root_target_type_program(true))
+        .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
 
