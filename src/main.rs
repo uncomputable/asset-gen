@@ -970,16 +970,32 @@ fn main() {
     /*
      * Witness block declared too long
      */
-    let bytes = bit_encoding::Program::program_preamble(1)
-        .unit()
-        .witness_preamble(1)
-        .bits_be(u64::MAX, 1)
-        .program_finished();
-    let cmr = Cmr::unit();
-    let test_case = TestBuilder::comment("witness_trailing_bits/trailing_bits")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+    /// Program causes SIMPLICITY_WITNESS_TRAILING_BITS iff trailing_bit is true
+    fn trailing_bits_program(trailing_bit: bool) -> (Vec<u8>, Cmr) {
+        let bytes = bit_encoding::Program::program_preamble(3)
+            .witness()
+            .unit()
+            .comp(2, 1)
+            .witness_preamble(usize::from(trailing_bit))
+            .bits_be(u64::MAX, u8::from(trailing_bit))
+            .program_finished();
+        let cmr = Cmr::comp(Cmr::witness(), Cmr::unit());
+
+        (bytes, cmr)
+    }
+
+    let test_case = TestBuilder::comment("witness_trailing_bits/witness_too_long")
+        .raw_program_cmr(trailing_bits_program(true))
         .expected_error(ScriptError::SimplicityWitnessUnusedBits)
+        .finished();
+    test_cases.push(test_case);
+
+    /*
+     * Witness block has correct length
+     */
+    let test_case = TestBuilder::comment("witness_trailing_bits/witness_length_ok")
+        .raw_program_cmr(trailing_bits_program(false))
+        .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
 
