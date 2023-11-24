@@ -313,11 +313,11 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * Program declared longer than DAG_LEN_MAX
+     * DAG_LEN_MAX < program length
      */
     let dag_len_max = 8_000_000;
     let bytes = bit_encoding::Program::program_preamble(dag_len_max + 1).parser_stops_here();
-    let test_case = TestBuilder::comment("data_out_of_range/program_length")
+    let test_case = TestBuilder::comment("data_out_of_range/program_length_exceeds_max")
         .raw_program(bytes)
         .raw_cmr([0; 32])
         .expected_error(ScriptError::SimplicityDataOutOfRange)
@@ -325,14 +325,42 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * Witness block declared longer than 2^31 - 1 (C test vector)
+     * program length <= DAG_LEN_MAX
      */
-    let bytes = bit_encoding::Program::program_preamble(1)
-        .unit()
-        .witness_preamble(1 << 31)
+    // Too lazy to write a program of DAG_LEN_MAX many nodes
+    // Instead, test that parser goes past program length and runs out of bits to read
+    let bytes = bit_encoding::Program::program_preamble(dag_len_max)
+        .bits_be(u64::MAX, 6)
+        .assert_n_total_written(5 * 8)
         .parser_stops_here();
-    let cmr = Cmr::unit();
-    let test_case = TestBuilder::comment("data_out_of_range/witness_length")
+    let test_case = TestBuilder::comment("data_out_of_range/program_length_ok")
+        .raw_program(bytes)
+        .raw_cmr([0; 32])
+        .expected_error(ScriptError::SimplicityBitstreamEof)
+        .finished();
+    test_cases.push(test_case);
+
+    /*
+     * 2^31 <= witness length
+     */
+    /// If 2^31 <= bit_len, then program causes SIMPLICITY_DATA_OUT_OF_RANGE
+    ///
+    /// If bit_len < 2^31, then program causes SIMPLICITY_BITSTREAM_EOF
+    // Too lazy to write 2^31 - 1 many bits = 2 GiB!
+    // Instead, test that parser goes past witness length and runs out of bits to read
+    fn witness_length_program(bit_len: usize) -> (Vec<u8>, Cmr) {
+        let bytes = bit_encoding::Program::program_preamble(3)
+            .witness()
+            .unit()
+            .comp(2, 1)
+            .witness_preamble(bit_len)
+            .parser_stops_here();
+        let cmr = Cmr::comp(Cmr::witness(), Cmr::unit());
+        (bytes, cmr)
+    }
+
+    let (bytes, cmr) = witness_length_program(1 << 31);
+    let test_case = TestBuilder::comment("data_out_of_range/witness_length_exceeds_max")
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_error(ScriptError::SimplicityDataOutOfRange)
@@ -340,18 +368,46 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * Index points past beginning of program
+     * witness length < 2^31
      */
-    let bytes = bit_encoding::Program::program_preamble(2)
-        .unit()
-        .comp(2, 1) // Left child does not exist
-        .witness_preamble(0)
-        .program_finished();
-    let cmr = Cmr::comp(Cmr::unit(), Cmr::unit());
-    let test_case = TestBuilder::comment("data_out_of_range/relative_combinator_index")
+    let (bytes, cmr) = witness_length_program((1 << 31) - 1);
+    let test_case = TestBuilder::comment("data_out_of_range/witness_length_ok")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_error(ScriptError::SimplicityBitstreamEof)
+        .finished();
+    test_cases.push(test_case);
+
+    /*
+     * Relative child index points past beginning of program
+     */
+    /// Program causes SIMPLICITY_DATA_OUT_OF_RANGE iff 1 < left_offset
+    fn combinator_child_index_program(left_offset: usize) -> (Vec<u8>, Cmr) {
+        let bytes = bit_encoding::Program::program_preamble(2)
+            .unit()
+            .comp(left_offset, 1)
+            .witness_preamble(0)
+            .program_finished();
+        let cmr = Cmr::comp(Cmr::unit(), Cmr::unit());
+        (bytes, cmr)
+    }
+
+    let (bytes, cmr) = combinator_child_index_program(2);
+    let test_case = TestBuilder::comment("data_out_of_range/relative_child_index_too_large")
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_error(ScriptError::SimplicityDataOutOfRange)
+        .finished();
+    test_cases.push(test_case);
+
+    /*
+     * Relative child index points inside program
+     */
+    let (bytes, cmr) = combinator_child_index_program(1);
+    let test_case = TestBuilder::comment("data_out_of_range/relative_child_index_ok")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
 
@@ -370,18 +426,38 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * Word depth greater than 32 (word longer than 2^31 bits)
+     * 32 < word depth (2^31 bits < word length)
      */
-    let value = Value::u1(0);
-    let bytes = bit_encoding::Program::program_preamble(1)
-        .word(33, &value)
-        .witness_preamble(0)
-        .program_finished();
-    let cmr = Cmr::const_word(&value);
-    let test_case = TestBuilder::comment("data_out_of_range/word_depth")
+    /// If 32 < depth, then program causes SIMPLICITY_DATA_OUT_OF_RANGE
+    ///
+    /// If depth <= 32, then program causes SIMPLICITY_BITSTREAM_EOF
+    // Too lazy to write 2^31 many bits = 2 GiB!
+    // Instead, test that parser goes past word depth and runs out of bits to read
+    fn word_depth_program(depth: usize) -> (Vec<u8>, Cmr) {
+        let value = Value::u1(0);
+        let bytes = bit_encoding::Program::program_preamble(1)
+            .word(depth, &value)
+            .parser_stops_here();
+        let cmr = Cmr::from_byte_array([0; 32]);
+        (bytes, cmr)
+    }
+
+    let (bytes, cmr) = word_depth_program(33);
+    let test_case = TestBuilder::comment("data_out_of_range/word_depth_exceeds_max")
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_error(ScriptError::SimplicityDataOutOfRange)
+        .finished();
+    test_cases.push(test_case);
+
+    /*
+     * word_depth <= 32
+     */
+    let (bytes, cmr) = word_depth_program(32);
+    let test_case = TestBuilder::comment("data_out_of_range/word_depth_ok")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_error(ScriptError::SimplicityBitstreamEof)
         .finished();
     test_cases.push(test_case);
 
