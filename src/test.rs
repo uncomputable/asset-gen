@@ -77,6 +77,13 @@ impl<B: MaybeBytes, C: MaybeCmr, E: MaybeError> TestBuilder<B, C, E> {
         }
     }
 
+    pub fn raw_program_cmr<A: AsRef<[u8]>>(
+        self,
+        (bytes, cmr): (Vec<u8>, A),
+    ) -> TestBuilder<Bytes, Cmr, E> {
+        self.raw_program(bytes).raw_cmr(cmr)
+    }
+
     pub fn program(self, program: &RedeemNode<Elements>) -> TestBuilder<Bytes, Cmr, E> {
         TestBuilder {
             comment: self.comment,

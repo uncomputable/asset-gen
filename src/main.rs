@@ -292,10 +292,8 @@ fn main() {
     }
 
     let value = Value::u1(0);
-    let (bytes, cmr) = unfinished_word_program(&value);
     let test_case = TestBuilder::comment("bitstream_eof/unfinished_word")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(unfinished_word_program(&value))
         .expected_error(ScriptError::SimplicityBitstreamEof)
         .finished();
     test_cases.push(test_case);
@@ -304,10 +302,8 @@ fn main() {
      * Finished word
      */
     let value = Value::u64(u64::MAX);
-    let (bytes, cmr) = unfinished_word_program(&value);
     let test_case = TestBuilder::comment("bitstream_eof/finished_word")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(unfinished_word_program(&value))
         .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
@@ -359,10 +355,8 @@ fn main() {
         (bytes, cmr)
     }
 
-    let (bytes, cmr) = witness_length_program(1 << 31);
     let test_case = TestBuilder::comment("data_out_of_range/witness_length_exceeds_max")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(witness_length_program(1 << 31))
         .expected_error(ScriptError::SimplicityDataOutOfRange)
         .finished();
     test_cases.push(test_case);
@@ -370,10 +364,8 @@ fn main() {
     /*
      * witness length < 2^31
      */
-    let (bytes, cmr) = witness_length_program((1 << 31) - 1);
     let test_case = TestBuilder::comment("data_out_of_range/witness_length_ok")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(witness_length_program((1 << 31) - 1))
         .expected_error(ScriptError::SimplicityBitstreamEof)
         .finished();
     test_cases.push(test_case);
@@ -392,10 +384,8 @@ fn main() {
         (bytes, cmr)
     }
 
-    let (bytes, cmr) = combinator_child_index_program(2);
     let test_case = TestBuilder::comment("data_out_of_range/relative_child_index_too_large")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(combinator_child_index_program(2))
         .expected_error(ScriptError::SimplicityDataOutOfRange)
         .finished();
     test_cases.push(test_case);
@@ -403,10 +393,8 @@ fn main() {
     /*
      * Relative child index points inside program
      */
-    let (bytes, cmr) = combinator_child_index_program(1);
     let test_case = TestBuilder::comment("data_out_of_range/relative_child_index_ok")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(combinator_child_index_program(1))
         .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
@@ -442,10 +430,8 @@ fn main() {
         (bytes, cmr)
     }
 
-    let (bytes, cmr) = word_depth_program(33);
     let test_case = TestBuilder::comment("data_out_of_range/word_depth_exceeds_max")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(word_depth_program(33))
         .expected_error(ScriptError::SimplicityDataOutOfRange)
         .finished();
     test_cases.push(test_case);
@@ -453,10 +439,8 @@ fn main() {
     /*
      * word_depth <= 32
      */
-    let (bytes, cmr) = word_depth_program(32);
     let test_case = TestBuilder::comment("data_out_of_range/word_depth_ok")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(word_depth_program(32))
         .expected_error(ScriptError::SimplicityBitstreamEof)
         .finished();
     test_cases.push(test_case);
@@ -480,10 +464,8 @@ fn main() {
         (bytes, cmr)
     }
 
-    let (bytes, cmr) = canonical_order_program(false);
     let test_case = TestBuilder::comment("data_out_of_order/not_in_canonical_order")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(canonical_order_program(false))
         .expected_error(ScriptError::SimplicityDataOutOfOrder)
         .finished();
     test_cases.push(test_case);
@@ -491,10 +473,8 @@ fn main() {
     /*
      * Program is serialized in canonical order
      */
-    let (bytes, cmr) = canonical_order_program(true);
     let test_case = TestBuilder::comment("data_out_of_order/in_canonical_order")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(canonical_order_program(true))
         .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
@@ -548,10 +528,8 @@ fn main() {
         (bytes, cmr)
     }
 
-    let (bytes, cmr) = comp_hidden_child_program(true);
     let test_case = TestBuilder::comment("hidden/comp_left_hidden")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(comp_hidden_child_program(true))
         .expected_error(ScriptError::SimplicityHidden)
         .finished();
     test_cases.push(test_case);
@@ -559,10 +537,8 @@ fn main() {
     /*
      * No child of composition is hidden
      */
-    let (bytes, cmr) = comp_hidden_child_program(false);
     let test_case = TestBuilder::comment("hidden/comp_nothing_hidden")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(comp_hidden_child_program(false))
         .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
@@ -606,10 +582,8 @@ fn main() {
         (bytes, cmr)
     }
 
-    let (bytes, cmr) = case_hidden_child_program(true, bool::default());
     let test_case = TestBuilder::comment("hidden/case_both_hidden")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(case_hidden_child_program(true, bool::default()))
         .expected_error(ScriptError::SimplicityHidden)
         .finished();
     test_cases.push(test_case);
@@ -617,10 +591,8 @@ fn main() {
     /*
      * Left child of case is hidden
      */
-    let (bytes, cmr) = case_hidden_child_program(false, false);
     let test_case = TestBuilder::comment("hidden/case_left_hidden")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(case_hidden_child_program(false, false))
         .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
@@ -628,10 +600,8 @@ fn main() {
     /*
      * Right child of case is hidden
      */
-    let (bytes, cmr) = case_hidden_child_program(false, true);
     let test_case = TestBuilder::comment("hidden/case_right_hidden")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(case_hidden_child_program(false, true))
         .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
@@ -651,10 +621,8 @@ fn main() {
         (bytes, program.cmr())
     }
 
-    let (bytes, cmr) = trailing_bytes_program(true);
     let test_case = TestBuilder::comment("bitstream_trailing_bytes/trailing_bytes")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(trailing_bytes_program(true))
         .expected_error(ScriptError::SimplicityBitstreamUnusedBytes)
         .finished();
     test_cases.push(test_case);
@@ -662,10 +630,8 @@ fn main() {
     /*
      * No trailing bytes after program encoding
      */
-    let (bytes, cmr) = trailing_bytes_program(false);
     let test_case = TestBuilder::comment("bitstream_trailing_bytes/no_trailing_bytes")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(trailing_bytes_program(false))
         .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
@@ -686,10 +652,8 @@ fn main() {
         (bytes, cmr)
     }
 
-    let (bytes, cmr) = illegal_padding_program(true);
     let test_case = TestBuilder::comment("bitstream_illegal_padding/illegal_padding")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(illegal_padding_program(true))
         .expected_error(ScriptError::SimplicityBitstreamUnusedBits)
         .finished();
     test_cases.push(test_case);
@@ -697,10 +661,8 @@ fn main() {
     /*
      * Legal padding in final program byte
      */
-    let (bytes, cmr) = illegal_padding_program(false);
     let test_case = TestBuilder::comment("bitstream_illegal_padding/legal_padding")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(illegal_padding_program(false))
         .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
@@ -1042,10 +1004,8 @@ fn main() {
     }
 
     let same_cmr = Cmr::from_byte_array([0; 32]);
-    let (bytes, cmr) = unshared_subexpression_program(same_cmr, same_cmr);
     let test_case = TestBuilder::comment("unshared_subexpression/duplicate_hidden")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(unshared_subexpression_program(same_cmr, same_cmr))
         .expected_error(ScriptError::SimplicityUnsharedSubexpression)
         .finished();
     test_cases.push(test_case);
@@ -1057,10 +1017,8 @@ fn main() {
      */
     let same_cmr = Cmr::from_byte_array([0; 32]);
     let different_cmr = Cmr::from_byte_array([1; 32]);
-    let (bytes, cmr) = unshared_subexpression_program(same_cmr, different_cmr);
     let test_case = TestBuilder::comment("unshared_subexpression/no_duplicate_hidden")
-        .raw_program(bytes)
-        .raw_cmr(cmr)
+        .raw_program_cmr(unshared_subexpression_program(same_cmr, different_cmr))
         .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
