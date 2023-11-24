@@ -7,13 +7,13 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
 ```
 
 - length mismatch in taproot witness:
-    - `[script_input, script, control_block (, annex)]` in Taproot speak
+    - `[(script_input1, script_input2, ..., ) script, control_block (, annex)]` in Taproot speak
     - `[program, cmr, control_block (, annex)]` in Simplicity speak
 
-1. no script inputs
+1. no script inputs (no program)
 2. more than one script input
-3. witness script is shorter than 32 bytes
-4. witness script is longer than 32 bytes
+3. witness script (cmr) is shorter than 32 bytes
+4. witness script (cmr) is longer than 32 bytes
 
 # `SCRIPT_ERR_SIMPLICITY_BITSTREAM_EOF = 63`
 
