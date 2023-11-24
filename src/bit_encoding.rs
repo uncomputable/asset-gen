@@ -1,7 +1,5 @@
 use std::collections::VecDeque;
-use std::fmt;
 
-use simplicity::hex::DisplayHex;
 use simplicity::{encode, BitWriter, Value};
 
 #[derive(Debug, Default)]
@@ -61,7 +59,7 @@ impl Encoder {
         }
     }
 
-    pub fn get_bytes(mut self) -> Result<Vec<u8>, Error> {
+    pub fn get_bytes(mut self) -> Vec<u8> {
         let mut bytes = Vec::new();
         let mut writer = BitWriter::new(&mut bytes);
 
@@ -72,13 +70,7 @@ impl Encoder {
         }
 
         writer.flush_all().expect("I/O to vector never fails");
-        let bit_len_final_byte = (writer.n_total_written() % 8) as u8; // cast safety: modulo 8
-
-        if bit_len_final_byte > 0 {
-            Err(Error::Padding((bytes, 8 - bit_len_final_byte)))
-        } else {
-            Ok(bytes)
-        }
+        bytes
     }
 }
 
@@ -116,7 +108,7 @@ pub trait Builder: Sized + AsMut<Encoder> + Into<Encoder> {
         self
     }
 
-    fn parser_stops_here(self) -> Result<Vec<u8>, Error> {
+    fn parser_stops_here(self) -> Vec<u8> {
         self.into().get_bytes()
     }
 }
@@ -250,7 +242,7 @@ impl From<Witness> for Encoder {
 impl Builder for Witness {}
 
 impl Witness {
-    pub fn program_finished(self) -> Result<Vec<u8>, Error> {
+    pub fn program_finished(self) -> Vec<u8> {
         self.parser_stops_here()
     }
 
@@ -278,45 +270,6 @@ impl From<IllegalPadding> for Encoder {
 }
 
 impl Builder for IllegalPadding {}
-
-#[derive(Debug)]
-pub enum Error {
-    Padding((Vec<u8>, u8)),
-}
-
-impl Error {
-    pub fn unwrap_padding(self) -> Vec<u8> {
-        match self {
-            Error::Padding((bytes, _)) => bytes,
-        }
-    }
-
-    pub fn expect_padding(self, bit_len: u8) -> Vec<u8> {
-        match self {
-            Error::Padding((bytes, padding_len)) => {
-                assert_eq!(
-                    padding_len, bit_len,
-                    "There are actually {} padding bits",
-                    padding_len
-                );
-                bytes
-            }
-        }
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::Padding((bytes, padding_len)) => write!(
-                f,
-                "There are {} bits of padding in the final byte of {}",
-                padding_len,
-                bytes.as_hex()
-            ),
-        }
-    }
-}
 
 /// Takes a byte slice with padding at the least significant bits of the final byte.
 /// Returns a vector of words with padding at the most significant bits of the final word.

@@ -138,8 +138,7 @@ fn main() {
     let bytes = bit_encoding::Program::program_preamble(16)
         .assert_n_total_written(8 + 3)
         .delete_bits(3)
-        .parser_stops_here()
-        .unwrap();
+        .parser_stops_here();
     let test_case = TestBuilder::comment("bitstream_eof/unfinished_program_length")
         .raw_program(bytes)
         .raw_cmr([0; 32])
@@ -157,8 +156,7 @@ fn main() {
         .comp(2, 1)
         .assert_n_total_written(2 * 8 + 6)
         .delete_bits(6)
-        .parser_stops_here()
-        .unwrap();
+        .parser_stops_here();
     let cmr = Cmr::case(Cmr::unit(), Cmr::iden());
     let test_case = TestBuilder::comment("bitstream_eof/unfinished_combinator_body")
         .raw_program(bytes)
@@ -177,8 +175,7 @@ fn main() {
         .comp(2, 1)
         .assert_n_total_written(3 * 8 + 1)
         .delete_bits(1)
-        .parser_stops_here()
-        .unwrap();
+        .parser_stops_here();
     let cmr = Cmr::comp(Cmr::unit(), Cmr::iden());
     let test_case = TestBuilder::comment("bitstream_eof/unfinished_combinator_child_index")
         .raw_program(bytes)
@@ -196,9 +193,7 @@ fn main() {
         .iden()
         .comp(2, 1)
         .witness_preamble(0)
-        .program_finished()
-        .unwrap_err()
-        .unwrap_padding();
+        .program_finished();
     let cmr = Cmr::comp(Cmr::unit(), Cmr::iden());
     let test_case = TestBuilder::comment("bitstream_eof/finished_combinator")
         .raw_program(bytes)
@@ -216,8 +211,7 @@ fn main() {
         .witness_preamble(16)
         .assert_n_total_written(2 * 8 + 2)
         .delete_bits(2)
-        .parser_stops_here()
-        .unwrap();
+        .parser_stops_here();
     let cmr = Cmr::unit();
     let test_case = TestBuilder::comment("bitstream_eof/unfinished_witness_length")
         .raw_program(bytes)
@@ -234,8 +228,7 @@ fn main() {
         .unit()
         .witness_preamble(1)
         .bits_be(u64::default(), 0) // No bits means we declared too many
-        .parser_stops_here()
-        .unwrap();
+        .parser_stops_here();
     let cmr = Cmr::unit();
     let test_case = TestBuilder::comment("bitstream_eof/unfinished_witness_block")
         .raw_program(bytes)
@@ -252,9 +245,7 @@ fn main() {
         .unit()
         .witness_preamble((1 << 31) - 1)
         .bits_be(u64::default(), 0) // No bits means we declared too many
-        .parser_stops_here()
-        .unwrap_err()
-        .unwrap_padding();
+        .parser_stops_here();
     let cmr = Cmr::unit();
     let test_case = TestBuilder::comment("bitstream_eof/unfinished_witness_block2")
         .raw_program(bytes)
@@ -273,8 +264,7 @@ fn main() {
         .jet(462384, 19)
         .assert_n_total_written(3 * 8)
         .delete_bits(8)
-        .parser_stops_here()
-        .unwrap();
+        .parser_stops_here();
     let cmr = Cmr::comp(Cmr::jet(Elements::Version), Cmr::unit());
     let test_case = TestBuilder::comment("bitstream_eof/unfinished_jet_body")
         .raw_program(bytes)
@@ -294,9 +284,7 @@ fn main() {
         .unit()
         .comp(2, 1)
         .witness_preamble(0)
-        .program_finished()
-        .unwrap_err()
-        .unwrap_padding();
+        .program_finished();
     let cmr = Cmr::comp(Cmr::jet(Elements::Version), Cmr::unit());
     let test_case = TestBuilder::comment("bitstream_eof/finished_jet_body")
         .raw_program(bytes)
@@ -316,9 +304,7 @@ fn main() {
             .unit()
             .comp(2, 1)
             .witness_preamble(0)
-            .program_finished()
-            .unwrap_err()
-            .unwrap_padding();
+            .program_finished();
         let cmr = Cmr::comp(Cmr::const_word(value), Cmr::unit());
         (bytes, cmr)
     }
@@ -350,10 +336,7 @@ fn main() {
      * Program declared longer than DAG_LEN_MAX
      */
     let dag_len_max = 8_000_000;
-    let bytes = bit_encoding::Program::program_preamble(dag_len_max + 1)
-        .parser_stops_here()
-        .unwrap_err()
-        .unwrap_padding();
+    let bytes = bit_encoding::Program::program_preamble(dag_len_max + 1).parser_stops_here();
     let test_case = TestBuilder::comment("data_out_of_range/program_length")
         .raw_program(bytes)
         .raw_cmr([0; 32])
@@ -368,9 +351,7 @@ fn main() {
     let bytes = bit_encoding::Program::program_preamble(1)
         .unit()
         .witness_preamble(1 << 31)
-        .parser_stops_here()
-        .unwrap_err()
-        .unwrap_padding();
+        .parser_stops_here();
     let cmr = Cmr::unit();
     let test_case = TestBuilder::comment("data_out_of_range/witness_length")
         .raw_program(bytes)
@@ -387,9 +368,7 @@ fn main() {
         .unit()
         .comp(2, 1) // Left child does not exist
         .witness_preamble(0)
-        .program_finished()
-        .unwrap_err()
-        .unwrap_padding();
+        .program_finished();
     let cmr = Cmr::comp(Cmr::unit(), Cmr::unit());
     let test_case = TestBuilder::comment("data_out_of_range/relative_combinator_index")
         .raw_program(bytes)
@@ -405,9 +384,7 @@ fn main() {
     let bytes = bit_encoding::Program::program_preamble(1)
         .jet(u64::MAX, 64) // It is unlikely that all-ones will become a jet soon
         .witness_preamble(0)
-        .program_finished()
-        .unwrap_err()
-        .unwrap_padding();
+        .program_finished();
     let test_case = TestBuilder::comment("data_out_of_range/undefined_jet")
         .raw_program(bytes)
         .raw_cmr([0; 32])
@@ -423,9 +400,7 @@ fn main() {
     let bytes = bit_encoding::Program::program_preamble(1)
         .word(33, &value)
         .witness_preamble(0)
-        .program_finished()
-        .unwrap_err()
-        .unwrap_padding();
+        .program_finished();
     let cmr = Cmr::const_word(&value);
     let test_case = TestBuilder::comment("data_out_of_range/word_depth")
         .raw_program(bytes)
@@ -443,9 +418,7 @@ fn main() {
         .iden()
         .comp(1, 2)
         .witness_preamble(0)
-        .program_finished()
-        .unwrap_err()
-        .unwrap_padding();
+        .program_finished();
     let cmr = Cmr::comp(Cmr::unit(), Cmr::iden());
     let test_case = TestBuilder::comment("data_out_of_order/not_in_canonical_order")
         .raw_program(bytes)
@@ -462,9 +435,7 @@ fn main() {
     let bytes = bit_encoding::Program::program_preamble(1)
         .fail(entropy.as_ref())
         .witness_preamble(0)
-        .program_finished()
-        .unwrap_err()
-        .unwrap_padding();
+        .program_finished();
     let cmr = Cmr::fail(entropy);
     let test_case = TestBuilder::comment("fail_code/fail_node")
         .raw_program(bytes)
@@ -479,9 +450,7 @@ fn main() {
      */
     let bytes = bit_encoding::Program::program_preamble(1)
         .stop()
-        .parser_stops_here()
-        .unwrap_err()
-        .unwrap_padding();
+        .parser_stops_here();
     let test_case = TestBuilder::comment("stop_code/stop_code")
         .raw_program(bytes)
         .raw_cmr([0; 32])
@@ -499,9 +468,7 @@ fn main() {
         .unit()
         .comp(2, 1)
         .witness_preamble(0)
-        .program_finished()
-        .unwrap_err()
-        .unwrap_padding();
+        .program_finished();
     let cmr = Cmr::comp(hidden_cmr, Cmr::unit());
     let test_case = TestBuilder::comment("hidden/comp_hidden_child")
         .raw_program(bytes)
@@ -520,9 +487,7 @@ fn main() {
         .hidden(hidden_cmr.as_ref())
         .case(2, 1)
         .witness_preamble(0)
-        .program_finished()
-        .unwrap_err()
-        .unwrap_padding();
+        .program_finished();
     let cmr = Cmr::case(hidden_cmr, hidden_cmr);
     let test_case = TestBuilder::comment("hidden/two_hidden_children")
         .raw_program(bytes)
@@ -556,8 +521,8 @@ fn main() {
         .witness_preamble(0)
         .illegal_padding()
         .bits_be(u64::MAX, 1)
-        .parser_stops_here()
-        .unwrap();
+        .assert_n_total_written(8)
+        .parser_stops_here();
     let cmr = Cmr::unit();
     let test_case = TestBuilder::comment("bitstream_illegal_padding/illegal_padding")
         .raw_program(bytes)
@@ -579,8 +544,7 @@ fn main() {
         .take(1)
         .comp(2, 1)
         .witness_preamble(0)
-        .program_finished()
-        .unwrap();
+        .program_finished();
     let cmr = Cmr::comp(Cmr::unit(), Cmr::take(Cmr::unit()));
     let test_case =
         TestBuilder::comment("type_inference_unification/comp_unify_left_target_right_source")
@@ -605,9 +569,7 @@ fn main() {
         .take(1)
         .pair(3, 1)
         .witness_preamble(0)
-        .program_finished()
-        .unwrap_err()
-        .unwrap_padding();
+        .program_finished();
     let cmr = Cmr::pair(Cmr::const_word(&value), Cmr::take(Cmr::unit()));
     let test_case =
         TestBuilder::comment("type_inference_unification/pair_unify_left_source_right_source")
@@ -634,9 +596,7 @@ fn main() {
         .take(1)
         .case(3, 1)
         .witness_preamble(0)
-        .program_finished()
-        .unwrap_err()
-        .unwrap_padding();
+        .program_finished();
     let cmr = Cmr::case(
         Cmr::take(Cmr::const_word(&small_value)),
         Cmr::take(Cmr::const_word(&large_value)),
@@ -664,9 +624,7 @@ fn main() {
         .take(1)
         .case(3, 1)
         .witness_preamble(0)
-        .program_finished()
-        .unwrap_err()
-        .unwrap_padding();
+        .program_finished();
     let cmr = Cmr::case(Cmr::const_word(&value), Cmr::take(Cmr::unit()));
     let test_case = TestBuilder::comment("type_inference_unification/case_bind_left_target")
         .raw_program(bytes)
@@ -690,9 +648,7 @@ fn main() {
         .word(1, &value)
         .case(2, 1)
         .witness_preamble(0)
-        .program_finished()
-        .unwrap_err()
-        .unwrap_padding();
+        .program_finished();
     let cmr = Cmr::case(Cmr::take(Cmr::unit()), Cmr::const_word(&value));
     let test_case = TestBuilder::comment("type_inference_unification/case_bind_right_target")
         .raw_program(bytes)
@@ -715,9 +671,7 @@ fn main() {
         .iden()
         .disconnect(2, 1)
         .witness_preamble(0)
-        .program_finished()
-        .unwrap_err()
-        .unwrap_padding();
+        .program_finished();
     let cmr = Cmr::disconnect(Cmr::const_word(&value));
     let test_case = TestBuilder::comment("type_inference_unification/disconnect_bind_left_source")
         .raw_program(bytes)
@@ -739,9 +693,7 @@ fn main() {
         .iden()
         .disconnect(2, 1)
         .witness_preamble(0)
-        .program_finished()
-        .unwrap_err()
-        .unwrap_padding();
+        .program_finished();
     let cmr = Cmr::disconnect(Cmr::unit());
     let test_case = TestBuilder::comment("type_inference_unification/disconnect_bind_left_target")
         .raw_program(bytes)
@@ -764,8 +716,7 @@ fn main() {
         .iden()
         .case(2, 1)
         .witness_preamble(0)
-        .program_finished()
-        .unwrap();
+        .program_finished();
     let cmr = Cmr::case(Cmr::drop(Cmr::iden()), Cmr::iden());
     let test_case = TestBuilder::comment("type_inference_occurs_check/occurs_check")
         .raw_program(bytes)
@@ -784,9 +735,7 @@ fn main() {
         .unit()
         .take(1)
         .witness_preamble(0)
-        .program_finished()
-        .unwrap_err()
-        .unwrap_padding();
+        .program_finished();
     let cmr = Cmr::take(Cmr::unit());
     let test_case = TestBuilder::comment("type_inference_not_program/root_source_type")
         .raw_program(bytes)
@@ -805,8 +754,7 @@ fn main() {
         .unit()
         .pair(1, 1)
         .witness_preamble(0)
-        .program_finished()
-        .unwrap();
+        .program_finished();
     let cmr = Cmr::pair(Cmr::unit(), Cmr::unit());
     let test_case = TestBuilder::comment("type_inference_not_program/root_target_type")
         .raw_program(bytes)
@@ -826,9 +774,7 @@ fn main() {
         .case(1, 1)
         .comp(4, 1)
         .witness_preamble(0) // bitstring: []
-        .parser_stops_here()
-        .unwrap_err()
-        .unwrap_padding();
+        .parser_stops_here();
     let cmr = Cmr::comp(
         Cmr::witness(),
         Cmr::case(Cmr::take(Cmr::unit()), Cmr::take(Cmr::unit())),
@@ -853,9 +799,7 @@ fn main() {
         .comp(5, 1)
         .witness_preamble(1) // bitstring: [1]
         .bits_be(u64::MAX, 1)
-        .parser_stops_here()
-        .unwrap_err()
-        .unwrap_padding();
+        .parser_stops_here();
     let cmr = Cmr::comp(
         Cmr::witness(),
         Cmr::case(
@@ -878,9 +822,7 @@ fn main() {
         .unit()
         .witness_preamble(1)
         .bits_be(u64::MAX, 1)
-        .program_finished()
-        .unwrap_err()
-        .unwrap_padding();
+        .program_finished();
     let cmr = Cmr::unit();
     let test_case = TestBuilder::comment("witness_trailing_bits/trailing_bits")
         .raw_program(bytes)
@@ -930,9 +872,7 @@ fn main() {
             .comp(9, 1) // 1 → 1
             .comp(6, 1) // 1 → 1
             .witness_preamble(0)
-            .program_finished()
-            .unwrap_err()
-            .unwrap_padding();
+            .program_finished();
         let scribe = Cmr::pair(Cmr::injr(Cmr::unit()), Cmr::unit());
         let cmr = Cmr::comp(
             Cmr::comp(scribe, Cmr::case(cmr1, Cmr::unit())),
@@ -1259,9 +1199,7 @@ fn main() {
     let hidden_cmr = Cmr::from_byte_array([0; 32]);
     let bytes = bit_encoding::Program::program_preamble(1)
         .hidden(hidden_cmr.as_ref())
-        .parser_stops_here()
-        .unwrap_err()
-        .unwrap_padding();
+        .parser_stops_here();
     let test_case = TestBuilder::comment("hidden_root/hidden_root")
         .raw_program(bytes)
         .raw_cmr(hidden_cmr)
