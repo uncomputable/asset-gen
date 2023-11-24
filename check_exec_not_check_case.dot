@@ -1,0 +1,23 @@
+digraph {
+label="Dashed lines were not executed";
+
+root1  [label="root"];
+case1  [label="case"];
+left1  [label="left"];
+right1 [label="right"];
+
+root1 -> case1;
+case1 -> left1 [style=dashed];
+case1 -> right1;
+root1 -> left1;
+
+root2  [label="root"];
+case2  [label="case"];
+left2  [label="left"];
+right2 [label="right"];
+
+root2 -> case2;
+case2 -> left2;
+case2 -> right2 [style=dashed];
+root2 -> right2;
+}
