@@ -567,15 +567,34 @@ fn main() {
     /*
      * Trailing bytes after program encoding (malleability)
      */
-    let s = "main := unit";
-    let program = util::program_from_string::<Elements>(s, &empty_witness).unwrap();
-    let mut bytes = program.encode_to_vec();
-    // Trailing byte
-    bytes.push(0x00);
+    /// Program causes SIMPLICITY_BITSTREAM_UNUSED_BYTES iff trailing_byte is true
+    fn trailing_bytes_program(trailing_byte: bool) -> (Vec<u8>, Cmr) {
+        let s = "main := unit";
+        let empty_witness = HashMap::new();
+        let program = util::program_from_string::<Elements>(s, &empty_witness).unwrap();
+        let mut bytes = program.encode_to_vec();
+        if trailing_byte {
+            bytes.push(0x00);
+        }
+        (bytes, program.cmr())
+    }
+
+    let (bytes, cmr) = trailing_bytes_program(true);
     let test_case = TestBuilder::comment("bitstream_trailing_bytes/trailing_bytes")
         .raw_program(bytes)
-        .raw_cmr(program.cmr())
+        .raw_cmr(cmr)
         .expected_error(ScriptError::SimplicityBitstreamUnusedBytes)
+        .finished();
+    test_cases.push(test_case);
+
+    /*
+     * No trailing bytes after program encoding
+     */
+    let (bytes, cmr) = trailing_bytes_program(false);
+    let test_case = TestBuilder::comment("bitstream_trailing_bytes/no_trailing_bytes")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
 
