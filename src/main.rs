@@ -6,13 +6,15 @@ mod util;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
+use std::sync::Arc;
 
 use simplicity::jet::Elements;
-use simplicity::{Cmr, FailEntropy, Value};
+use simplicity::{Cmr, FailEntropy, RedeemNode, Value};
 
 use crate::bit_encoding::BitBuilder;
 use crate::json::ScriptError;
 use crate::test::TestBuilder;
+use crate::util::Case;
 
 fn main() {
     let mut test_cases = Vec::new();
@@ -1271,88 +1273,99 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * Execute right branch of left assertion
+     * Unexecuted branches must be hidden via assertions (antidos)
+     *
+     * Executing the left branch of a right assertion leads to failure (assert)
+     *
+     * Executing the right branch of a left assertion leads to failure (assert)
      */
-    let s = "
-        input := pair (const 0b1) unit
-        output := assertl (take unit) #{take unit}
-        main := comp input output
-    ";
-    let test_case = TestBuilder::comment("exec_assert/right_branch_assertl")
-        .human_encoding(s, &empty_witness)
-        .expected_error(ScriptError::SimplicityExecAssert)
-        .finished();
-    test_cases.push(test_case);
+    /// Program where some nodes are unexecuted.
+    /// If go_right is false, then the left case child is executed and the right child stays unexecuted.
+    /// Vice versa for go_right being true.
+    fn some_unexecuted_case_program(case: Case, go_right: bool) -> Arc<RedeemNode<Elements>> {
+        // No node is shared
+        let s = format!(
+            "
+            input := pair (const 0b{}) unit
+            main := comp input ({} {} {})
+        ",
+            u8::from(go_right),
+            case,
+            case.left_child("unit"),
+            case.right_child("take iden")
+        );
+
+        let empty_witness = HashMap::new();
+        util::program_from_string(s.as_str(), &empty_witness)
+    }
+
+    for case in Case::all() {
+        for go_right in [true, false] {
+            let error = match case {
+                Case::Both => ScriptError::SimplicityAntidos,
+                Case::Left if go_right => ScriptError::SimplicityExecAssert,
+                Case::Right if !go_right => ScriptError::SimplicityExecAssert,
+                _ => ScriptError::Ok,
+            };
+            let comment = format!(
+                "antidos/some_unexecuted_{}_go_{}",
+                case,
+                if go_right { "right" } else { "left" }
+            );
+            let test_case = TestBuilder::comment(comment)
+                .program(&some_unexecuted_case_program(case, go_right))
+                .expected_error(error)
+                .finished();
+            test_cases.push(test_case);
+        }
+    }
 
     /*
-     * Execute left branch of left assertion
+     * A child of case must be executed by case itself,
+     * even if the child is executed by a different parent in the DAG
      */
-    let s = "
-        input := pair (const 0b0) unit
-        output := assertl (take unit) #{take unit}
-        main := comp input output
-    ";
-    let test_case = TestBuilder::comment("exec_assert/left_branch_assertl")
-        .human_encoding(s, &empty_witness)
-        .expected_error(ScriptError::Ok)
-        .finished();
-    test_cases.push(test_case);
+    /// Program where all nodes are executed.
+    /// If go_right is false, then the case node will execute the left child.
+    /// The right case child will be left unexecuted.
+    /// If go_right is true, then the left case child is left unexecuted.
+    fn all_executed_case_program(case: Case, go_right: bool) -> Arc<RedeemNode<Elements>> {
+        // Problem is the only shared node
+        let s = format!(
+            "
+            input := pair (const 0b{}) unit
+            problem := unit : 1 * 1 -> 1
+            main := comp input ({} {} {})
+        ",
+            u8::from(go_right),
+            case,
+            case.left_child("problem"),
+            case.right_child("problem")
+        );
 
-    /*
-     * Execute left branch of right assertion
-     */
-    let s = "
-        input := pair (const 0b0) unit
-        output := assertr #{take unit} (take unit)
-        main := comp input output
-    ";
-    let test_case = TestBuilder::comment("exec_assert/left_branch_assertr")
-        .human_encoding(s, &empty_witness)
-        .expected_error(ScriptError::SimplicityExecAssert)
-        .finished();
-    test_cases.push(test_case);
+        let empty_witness = HashMap::new();
+        util::program_from_string(s.as_str(), &empty_witness)
+    }
 
-    /*
-     * Execute right branch of right assertion
-     */
-    let s = "
-        input := pair (const 0b1) unit
-        output := assertr #{take unit} (take unit)
-        main := comp input output
-    ";
-    let test_case = TestBuilder::comment("exec_assert/right_branch_assertr")
-        .human_encoding(s, &empty_witness)
-        .expected_error(ScriptError::Ok)
-        .finished();
-    test_cases.push(test_case);
-
-    /*
-     * Left branch of case node was not executed
-     */
-    let s = "
-        input := pair (const 0b1) unit
-        output := case (take unit) (take unit)
-        main := comp input output
-    ";
-    let test_case = TestBuilder::comment("antidos/check_case_left")
-        .human_encoding(s, &empty_witness)
-        .expected_error(ScriptError::SimplicityAntidos)
-        .finished();
-    test_cases.push(test_case);
-
-    /*
-     * Right branch of case node was not executed
-     */
-    let s = "
-        input := pair (const 0b0) unit
-        output := case (take unit) (take unit)
-        main := comp input output
-    ";
-    let test_case = TestBuilder::comment("antidos/check_case_right")
-        .human_encoding(s, &empty_witness)
-        .expected_error(ScriptError::SimplicityAntidos)
-        .finished();
-    test_cases.push(test_case);
+    for case in Case::all() {
+        for go_right in [true, false] {
+            let error = match case {
+                Case::Both => ScriptError::SimplicityAntidos,
+                Case::Left if go_right => ScriptError::SimplicityExecAssert,
+                Case::Right if !go_right => ScriptError::SimplicityExecAssert,
+                _ => ScriptError::Ok,
+            };
+            let comment = format!(
+                "antidos/all_executed_{}_go_{}",
+                case,
+                if go_right { "right" } else { "left" }
+            );
+            let test_case = TestBuilder::comment(comment)
+                .program(&all_executed_case_program(case, go_right))
+                .expected_error(error)
+                .finished();
+            test_cases.push(test_case);
+        }
+    }
 
     /*
      * Program root is hidden
