@@ -529,17 +529,27 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * Node other than `case` has hidden child
+     * Left child of composition is hidden
      */
-    let hidden_cmr = Cmr::from_byte_array([0; 32]);
-    let bytes = bit_encoding::Program::program_preamble(3)
-        .hidden(hidden_cmr.as_ref())
-        .unit()
-        .comp(2, 1)
-        .witness_preamble(0)
-        .program_finished();
-    let cmr = Cmr::comp(hidden_cmr, Cmr::unit());
-    let test_case = TestBuilder::comment("hidden/comp_hidden_child")
+    /// Program causes SIMPLICITY_HIDDEN iff left_hidden is true
+    fn comp_hidden_child_program(left_hidden: bool) -> (Vec<u8>, Cmr) {
+        let unit = Cmr::unit();
+        let mut builder = bit_encoding::Program::program_preamble(2);
+
+        if left_hidden {
+            builder = builder.hidden(unit).comp(1, 1);
+        } else {
+            builder = builder.unit().comp(1, 1);
+        }
+
+        let bytes = builder.witness_preamble(0).program_finished();
+        let cmr = Cmr::comp(unit, unit);
+
+        (bytes, cmr)
+    }
+
+    let (bytes, cmr) = comp_hidden_child_program(true);
+    let test_case = TestBuilder::comment("hidden/comp_left_hidden")
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_error(ScriptError::SimplicityHidden)
@@ -547,20 +557,82 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * `Case` has two hidden children
+     * No child of composition is hidden
      */
-    let hidden_cmr = Cmr::from_byte_array([0; 32]);
-    let bytes = bit_encoding::Program::program_preamble(3)
-        .hidden(hidden_cmr.as_ref())
-        .hidden(hidden_cmr.as_ref())
-        .case(2, 1)
-        .witness_preamble(0)
-        .program_finished();
-    let cmr = Cmr::case(hidden_cmr, hidden_cmr);
-    let test_case = TestBuilder::comment("hidden/two_hidden_children")
+    let (bytes, cmr) = comp_hidden_child_program(false);
+    let test_case = TestBuilder::comment("hidden/comp_nothing_hidden")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_error(ScriptError::Ok)
+        .finished();
+    test_cases.push(test_case);
+
+    /*
+     * Both children of case are hidden
+     */
+    fn case_hidden_child_program(both_hidden: bool, hide_left: bool) -> (Vec<u8>, Cmr) {
+        let take_unit = Cmr::take(Cmr::unit());
+        let value = Value::u1(u8::from(hide_left));
+
+        let mut builder = bit_encoding::Program::program_preamble(7)
+            .word(1, &value) // 1 → 2
+            .unit() // 1 → 1
+            .pair(2, 1); // 1 → 2 × 1
+        let cmr = Cmr::pair(Cmr::const_word(&value), Cmr::unit());
+
+        if both_hidden {
+            builder = builder
+                .hidden(take_unit)
+                .hidden(take_unit)
+                .case(2, 1) // (1 + 1) × 1 → 1
+                .comp(4, 1); // 1 → 1
+        } else if !hide_left {
+            builder = builder
+                .take(2) // 1 × 1 → 1
+                .hidden(take_unit)
+                .case(2, 1) // (1 + 1) × 1 → 1
+                .comp(4, 1); // 1 → 1
+        } else {
+            builder = builder
+                .hidden(take_unit)
+                .take(3) // 1 × 1 → 1
+                .case(2, 1) // (1 + 1) × 1 → 1
+                .comp(4, 1); // 1 → 1
+        }
+
+        let bytes = builder.witness_preamble(0).program_finished();
+        let cmr = Cmr::comp(cmr, Cmr::case(take_unit, take_unit));
+
+        (bytes, cmr)
+    }
+
+    let (bytes, cmr) = case_hidden_child_program(true, bool::default());
+    let test_case = TestBuilder::comment("hidden/case_both_hidden")
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_error(ScriptError::SimplicityHidden)
+        .finished();
+    test_cases.push(test_case);
+
+    /*
+     * Left child of case is hidden
+     */
+    let (bytes, cmr) = case_hidden_child_program(false, false);
+    let test_case = TestBuilder::comment("hidden/case_left_hidden")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_error(ScriptError::Ok)
+        .finished();
+    test_cases.push(test_case);
+
+    /*
+     * Right child of case is hidden
+     */
+    let (bytes, cmr) = case_hidden_child_program(false, true);
+    let test_case = TestBuilder::comment("hidden/case_right_hidden")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
 
