@@ -6,24 +6,33 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
 if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCRIPT_ERR_SIMPLICITY_WRONG_LENGTH);
 ```
 
-1. not exactly one script input (encoded Simplicity program + witness data)
-2. script is not exactly 32 bytes (CMR)
+- length mismatch in taproot witness:
+    - `[script_input, script, control_block (, annex)]` in Taproot speak
+    - `[program, cmr, control_block (, annex)]` in Simplicity speak
+
+1. no script inputs
+2. more than one script input
+3. witness script is shorter than 32 bytes
+4. witness script is longer than 32 bytes
 
 # `SCRIPT_ERR_SIMPLICITY_BITSTREAM_EOF = 63`
 
 - attempted to read bits from bitstream, but reached the end
 
-1. unfinished combinator
-    - error in `readNBits`
-2. unfinished jet
-    - error in `decodeJet`
-3. word declared longer than it actually is
-    - error in `readBitstring`
-4. positive integer declared longer than it actually is
+1. unfinished program length
     - error in `decodeUptoMaxInt`
+2. unfinished combinator body
+    - error in `readNBits`
+3. unfinished combinator child index
+    - error in `decodeUptoMaxInt`
+4. unfinished witness length
 5. witness block declared longer than it actually is
     - error in `decodeWitnessData`
     - failure to read bitstring from bitstream
+6. unfinished jet body
+    - error in `decodeJet`
+7. unfinished word
+    - error in `readBitstring`
 
 # `SCRIPT_ERR_SIMPLICITY_NOT_YET_IMPLEMENTED = 64`
 
