@@ -45,13 +45,13 @@ if (stack.size() != 1 || script_bytes.size() != 32) return set_error(serror, SCR
 #define DAG_LEN_MAX 8000000U
 ```
 
-1. program is declared length > `DAG_LEN_MAX`
-2. witness block is declared length >= 2^31
+1. `DAG_LEN_MAX` < program length (number of nodes)
+2. 2^31 <= witness bit length
 3. index points past beginning of program
-    - relative index ix is greater than current absolute node index
-    - relative indices cannot be zero because zero cannot be encoded!
+    - relative child index is greater than absolute parent index
+    - relative indices cannot be zero because zero cannot be encoded
 4. jet is not defined
-5. word depth > 32 (word longer than 2^31 bits)
+5. 32 < word depth (2^31 bits < word length)
 
 # `SCRIPT_ERR_SIMPLICITY_DATA_OUT_OF_ORDER = 66`
 
