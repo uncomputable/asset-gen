@@ -504,7 +504,7 @@ fn main() {
      */
     let entropy = FailEntropy::from_byte_array([0; 64]);
     let bytes = bit_encoding::Program::program_preamble(1)
-        .fail(entropy.as_ref())
+        .fail(entropy)
         .witness_preamble(0)
         .program_finished();
     let cmr = Cmr::fail(entropy);
@@ -947,11 +947,11 @@ fn main() {
             .injr(1) // 1 → 1 + 1
             .pair(1, 2) // 1 → (1 + 1) × 1
             // End scribe
-            .hidden(cmr1.as_ref())
+            .hidden(cmr1)
             .unit() // 1 × 1 → 1
             .case(2, 1) // (1 + 1) × 1 → 1
             .comp(4, 1) // 1 → 1
-            .hidden(cmr2.as_ref())
+            .hidden(cmr2)
             .iden() // 1 → 1
             .take(1) // 1 × 1 → 1
             // Forall cmr1 cmr2, IMR(assertr cmr1 unit) != IMR(assertr cmr2 (take iden))
@@ -1269,7 +1269,7 @@ fn main() {
      */
     let hidden_cmr = Cmr::from_byte_array([0; 32]);
     let bytes = bit_encoding::Program::program_preamble(1)
-        .hidden(hidden_cmr.as_ref())
+        .hidden(hidden_cmr)
         .parser_stops_here();
     let test_case = TestBuilder::comment("hidden_root/hidden_root")
         .raw_program(bytes)

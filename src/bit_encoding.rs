@@ -16,8 +16,8 @@ impl Encoder {
         self.queue.push_back((bits, bit_len));
     }
 
-    pub fn bytes_be(&mut self, bytes: &[u8]) {
-        for byte in bytes {
+    pub fn bytes_be<A: AsRef<[u8]>>(&mut self, bytes: A) {
+        for byte in bytes.as_ref() {
             self.bits_be(u64::from(*byte), 8);
         }
     }
@@ -80,7 +80,7 @@ pub trait Builder: Sized + AsMut<Encoder> + Into<Encoder> {
         self
     }
 
-    fn bytes_be(mut self, bytes: &[u8]) -> Self {
+    fn bytes_be<A: AsRef<[u8]>>(mut self, bytes: A) -> Self {
         self.as_mut().bytes_be(bytes);
         self
     }
@@ -187,11 +187,11 @@ impl Program {
             .positive_integer(right_offset)
     }
 
-    pub fn hidden(self, payload: &[u8]) -> Self {
+    pub fn hidden<A: AsRef<[u8]>>(self, payload: A) -> Self {
         self.bits_be(0b0110, 4).bytes_be(payload)
     }
 
-    pub fn fail(self, entropy: &[u8]) -> Self {
+    pub fn fail<A: AsRef<[u8]>>(self, entropy: A) -> Self {
         self.bits_be(0b01010, 5).bytes_be(entropy)
     }
 
