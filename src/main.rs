@@ -6,18 +6,13 @@ mod util;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
-use std::sync::Arc;
 
-use simplicity::dag::NoSharing;
 use simplicity::jet::Elements;
-use simplicity::node::CoreConstructible;
-use simplicity::{BitWriter, Cmr, FailEntropy, Value, WitnessNode};
+use simplicity::{Cmr, FailEntropy, Value};
 
 use crate::bit_encoding::Builder;
 use crate::json::ScriptError;
 use crate::test::TestBuilder;
-
-type Node = Arc<WitnessNode<Elements>>;
 
 fn main() {
     let mut test_cases = Vec::new();
@@ -989,25 +984,43 @@ fn main() {
     test_cases.push(test_case);
 
     /*
-     * Two unit nodes have the same IMR
+     * Two nodes have the same IMR
      */
-    // Cannot use human encoding because it unifies combinators
-    let program = Node::comp(&Node::unit(), &Node::unit()).unwrap();
-    let bytes = BitWriter::write_to_vec(|w| program.encode_with_tracker_default::<_, NoSharing>(w));
+    /// Program is maximally shared iff duplicate is false
+    fn duplicate_imr_program(duplicate: bool) -> (Vec<u8>, Cmr) {
+        let mut builder =
+            bit_encoding::Program::program_preamble(2 + usize::from(duplicate)).unit();
+        if duplicate {
+            builder = builder.unit().comp(2, 1);
+        } else {
+            builder = builder.comp(1, 1);
+        }
+        let bytes = builder.witness_preamble(0).program_finished();
+        let cmr = Cmr::comp(Cmr::unit(), Cmr::unit());
+
+        (bytes, cmr)
+    }
+
     let test_case = TestBuilder::comment("unshared_subexpression/duplicate_imr")
-        .raw_program(bytes)
-        .raw_cmr(program.cmr())
+        .raw_program_cmr(duplicate_imr_program(true))
         .expected_error(ScriptError::SimplicityUnsharedSubexpression)
+        .finished();
+    test_cases.push(test_case);
+
+    /*
+     * Each node has a unique IMR
+     */
+    let test_case = TestBuilder::comment("unshared_subexpression/no_duplicate_imr")
+        .raw_program_cmr(duplicate_imr_program(false))
+        .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
 
     /*
      * Two hidden nodes have the same payload
      */
-    /// Compute a program that is maximally shared iff cmr1 == cmr2.
-    ///
-    /// Returns the program encoding and the program CMR.
-    fn unshared_subexpression_program(cmr1: Cmr, cmr2: Cmr) -> (Vec<u8>, Cmr) {
+    /// Program is maximally shared iff cmr1 == cmr2
+    fn duplicate_hidden_program(cmr1: Cmr, cmr2: Cmr) -> (Vec<u8>, Cmr) {
         // FIXME: Use rust-simplicity encoder with sharing of hidden nodes disabled, once implemented
         let bytes = bit_encoding::Program::program_preamble(13)
             // scribe ([1], [])
@@ -1039,7 +1052,7 @@ fn main() {
 
     let same_cmr = Cmr::from_byte_array([0; 32]);
     let test_case = TestBuilder::comment("unshared_subexpression/duplicate_hidden")
-        .raw_program_cmr(unshared_subexpression_program(same_cmr, same_cmr))
+        .raw_program_cmr(duplicate_hidden_program(same_cmr, same_cmr))
         .expected_error(ScriptError::SimplicityUnsharedSubexpression)
         .finished();
     test_cases.push(test_case);
@@ -1052,7 +1065,7 @@ fn main() {
     let same_cmr = Cmr::from_byte_array([0; 32]);
     let different_cmr = Cmr::from_byte_array([1; 32]);
     let test_case = TestBuilder::comment("unshared_subexpression/no_duplicate_hidden")
-        .raw_program_cmr(unshared_subexpression_program(same_cmr, different_cmr))
+        .raw_program_cmr(duplicate_hidden_program(same_cmr, different_cmr))
         .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
