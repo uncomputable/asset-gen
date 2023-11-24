@@ -4,13 +4,15 @@
 //!
 //! This lets us manipulate the spending process more freely and it lets us provoke errors.
 
+use std::borrow::Cow;
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::Arc;
 
 use elements::secp256k1_zkp;
 use elements_miniscript as miniscript;
 use miniscript::{bitcoin, elements};
-use simplicity::jet::Jet;
+use simplicity::jet::Elements;
 use simplicity::RedeemNode;
 
 /// Nothing-up-my-sleeve point.
@@ -97,4 +99,41 @@ pub fn program_from_string(
 ) -> Arc<RedeemNode<Elements>> {
     let forest = simplicity::human_encoding::Forest::parse(s).unwrap();
     forest.to_witness_node(witness).finalize().unwrap()
+}
+
+#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub enum Case {
+    Both,
+    Left,
+    Right,
+}
+
+impl fmt::Display for Case {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Case::Both => f.write_str("case"),
+            Case::Left => f.write_str("assertl"),
+            Case::Right => f.write_str("assertr"),
+        }
+    }
+}
+
+impl Case {
+    pub fn all() -> [Self; 3] {
+        [Case::Both, Case::Left, Case::Right]
+    }
+
+    pub fn left_child<'a>(&self, s: &'a str) -> Cow<'a, str> {
+        match self {
+            Case::Right => Cow::Owned(format!("#{{{s}}}")),
+            _ => Cow::Borrowed(s),
+        }
+    }
+
+    pub fn right_child<'a>(&self, s: &'a str) -> Cow<'a, str> {
+        match self {
+            Case::Left => Cow::Owned(format!("#{{{s}}}")),
+            _ => Cow::Borrowed(s),
+        }
+    }
 }
