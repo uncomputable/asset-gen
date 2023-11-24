@@ -601,18 +601,35 @@ fn main() {
     /*
      * Illegal padding in final program byte (malleability)
      */
-    let bytes = bit_encoding::Program::program_preamble(1)
-        .unit()
-        .witness_preamble(0)
-        .illegal_padding()
-        .bits_be(u64::MAX, 1)
-        .assert_n_total_written(8)
-        .parser_stops_here();
-    let cmr = Cmr::unit();
+    /// Program causes SIMPLICITY_BITSTREAM_UNUSED_BITS iff pad_with = true
+    fn illegal_padding_program(pad_with: bool) -> (Vec<u8>, Cmr) {
+        let bytes = bit_encoding::Program::program_preamble(1)
+            .unit()
+            .witness_preamble(0)
+            .illegal_padding()
+            .bits_be(u64::from(pad_with), 1)
+            .assert_n_total_written(8)
+            .parser_stops_here();
+        let cmr = Cmr::unit();
+        (bytes, cmr)
+    }
+
+    let (bytes, cmr) = illegal_padding_program(true);
     let test_case = TestBuilder::comment("bitstream_illegal_padding/illegal_padding")
         .raw_program(bytes)
         .raw_cmr(cmr)
         .expected_error(ScriptError::SimplicityBitstreamUnusedBits)
+        .finished();
+    test_cases.push(test_case);
+
+    /*
+     * Legal padding in final program byte
+     */
+    let (bytes, cmr) = illegal_padding_program(false);
+    let test_case = TestBuilder::comment("bitstream_illegal_padding/legal_padding")
+        .raw_program(bytes)
+        .raw_cmr(cmr)
+        .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
 
