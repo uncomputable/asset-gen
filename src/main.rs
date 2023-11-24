@@ -1224,6 +1224,7 @@ fn main() {
     /*
      * Export test cases to JSON
      */
+    println!("Writing {} tests", test_cases.len());
     let s = serde_json::to_string_pretty(&test_cases).expect("Unable to create JSON");
     let mut file = File::create("script_assets_test.json").expect("Unable to create file");
     file.write_all(s.as_bytes()).expect("Unable to write data");
