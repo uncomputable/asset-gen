@@ -9,12 +9,15 @@ use std::io::Write;
 use std::sync::Arc;
 
 use simplicity::jet::Elements;
-use simplicity::{Cmr, FailEntropy, RedeemNode, Value};
+use simplicity::node::{CoreConstructible, WitnessConstructible};
+use simplicity::{BitWriter, Cmr, FailEntropy, RedeemNode, Value, WitnessNode};
 
 use crate::bit_encoding::BitBuilder;
 use crate::json::ScriptError;
 use crate::test::TestBuilder;
 use crate::util::Case;
+
+type Node = Arc<WitnessNode<Elements>>;
 
 fn main() {
     let mut test_cases = Vec::new();
@@ -36,6 +39,60 @@ fn main() {
     let s = "main := iden";
     let test_case = TestBuilder::comment("ok/iden")
         .human_encoding(s, &empty_witness)
+        .expected_error(ScriptError::Ok)
+        .finished();
+    test_cases.push(test_case);
+
+    /*
+     * Witness value has complex type of zero bit size (DDos)
+     *
+     * Witness node with target type that is exponential product of unit
+     */
+    fn program_complex_witness_type_zero_size() -> (Vec<u8>, Cmr) {
+        /*
+        let s = "
+            unpack0 := iden
+            unpack1 := comp (take unpack0) (drop unpack0)
+            unpack2 := comp (take unpack1) (drop unpack1)
+            unpack3 := comp (take unpack2) (drop unpack2)
+            unpack4 := comp (take unpack3) (drop unpack3)
+            unpack5 := comp (take unpack4) (drop unpack4)
+            unpack6 := comp (take unpack5) (drop unpack5)
+            unpack7 := comp (take unpack6) (drop unpack6)
+            unpack8 := comp (take unpack7) (drop unpack7)
+            unpack9 := comp (take unpack8) (drop unpack8)
+            unpack10 := comp (take unpack9) (drop unpack9)
+            unpack11 := comp (take unpack10) (drop unpack10)
+            unpack12 := comp (take unpack11) (drop unpack11)
+            unpack13 := comp (take unpack12) (drop unpack12)
+            unpack14 := comp (take unpack13) (drop unpack13)
+            unpack15 := comp (take unpack14) (drop unpack14)
+            wit := witness
+            main := comp wit unpack15
+        ";
+        // FIXME: This program takes too long to parse
+        let empty_witness = HashMap::new();
+        let program = util::program_from_string(s, &empty_witness);
+        */
+
+        let mut unpack = Node::iden();
+        for _ in 0..15 {
+            unpack = Node::comp(&Node::take(&unpack), &Node::drop_(&unpack)).unwrap();
+        }
+        let program = Node::comp(
+            // Leave the witness value empty because
+            // we manually encode the witness block as the empty bitstring
+            &Node::witness(None),
+            &unpack,
+        )
+        .unwrap();
+        let bytes = BitWriter::vec(|w| util::encode_program_empty_witness(&program, w));
+
+        (bytes, program.cmr())
+    }
+
+    let test_case = TestBuilder::comment("ok/complex_witness_type_zero_size")
+        .raw_program_cmr(program_complex_witness_type_zero_size())
         .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);

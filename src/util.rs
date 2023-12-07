@@ -6,14 +6,15 @@
 
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::fmt;
 use std::sync::Arc;
+use std::{fmt, io};
 
 use elements::secp256k1_zkp;
 use elements_miniscript as miniscript;
 use miniscript::{bitcoin, elements};
 use simplicity::jet::Elements;
-use simplicity::RedeemNode;
+use simplicity::node;
+use simplicity::{BitWriter, RedeemNode};
 
 /// Nothing-up-my-sleeve point.
 ///
