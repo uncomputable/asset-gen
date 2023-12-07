@@ -137,3 +137,13 @@ impl Case {
         }
     }
 }
+
+pub fn encode_program_empty_witness<W: io::Write, N: node::Marker>(
+    program: &node::Node<N>,
+    w: &mut BitWriter<W>,
+) -> io::Result<usize> {
+    let program_bits = simplicity::encode::encode_program(program, w)?;
+    w.write_bit(false)?; // preamble for empty witness
+    w.flush_all()?;
+    Ok(program_bits + 1)
+}
