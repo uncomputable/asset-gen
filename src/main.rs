@@ -48,51 +48,34 @@ fn main() {
      *
      * Witness node with target type that is exponential product of unit
      */
-    fn program_complex_witness_type_zero_size() -> (Vec<u8>, Cmr) {
-        /*
-        let s = "
-            unpack0 := iden
-            unpack1 := comp (take unpack0) (drop unpack0)
-            unpack2 := comp (take unpack1) (drop unpack1)
-            unpack3 := comp (take unpack2) (drop unpack2)
-            unpack4 := comp (take unpack3) (drop unpack3)
-            unpack5 := comp (take unpack4) (drop unpack4)
-            unpack6 := comp (take unpack5) (drop unpack5)
-            unpack7 := comp (take unpack6) (drop unpack6)
-            unpack8 := comp (take unpack7) (drop unpack7)
-            unpack9 := comp (take unpack8) (drop unpack8)
-            unpack10 := comp (take unpack9) (drop unpack9)
-            unpack11 := comp (take unpack10) (drop unpack10)
-            unpack12 := comp (take unpack11) (drop unpack11)
-            unpack13 := comp (take unpack12) (drop unpack12)
-            unpack14 := comp (take unpack13) (drop unpack13)
-            unpack15 := comp (take unpack14) (drop unpack14)
-            wit := witness
-            main := comp wit unpack15
-        ";
-        // FIXME: This program takes too long to parse
-        let empty_witness = HashMap::new();
-        let program = util::program_from_string(s, &empty_witness);
-        */
-
-        let mut unpack = Node::iden();
-        for _ in 0..15 {
-            unpack = Node::comp(&Node::take(&unpack), &Node::drop_(&unpack)).unwrap();
-        }
-        let program = Node::comp(
-            // Leave the witness value empty because
-            // we manually encode the witness block as the empty bitstring
-            &Node::witness(None),
-            &unpack,
-        )
-        .unwrap();
-        let bytes = BitWriter::vec(|w| util::encode_program_empty_witness(&program, w));
-
-        (bytes, program.cmr())
+    let s = "
+        unpack0 := iden : 1 -> 1
+        unpack1 := comp (pair (take unpack0) (drop unpack0)) unit : 1 * 1 -> 1
+        unpack2 := comp (pair (take unpack1) (drop unpack1)) unit : (1 * 1) * (1 * 1) -> 1
+        unpack3 := comp (pair (take unpack2) (drop unpack2)) unit
+        unpack4 := comp (pair (take unpack3) (drop unpack3)) unit
+        unpack5 := comp (pair (take unpack4) (drop unpack4)) unit
+        unpack6 := comp (pair (take unpack5) (drop unpack5)) unit
+        unpack7 := comp (pair (take unpack6) (drop unpack6)) unit
+        unpack8 := comp (pair (take unpack7) (drop unpack7)) unit
+        unpack9 := comp (pair (take unpack8) (drop unpack8)) unit
+        unpack10 := comp (pair (take unpack9) (drop unpack9)) unit
+        unpack11 := comp (pair (take unpack10) (drop unpack10)) unit
+        unpack12 := comp (pair (take unpack11) (drop unpack11)) unit
+        unpack13 := comp (pair (take unpack12) (drop unpack12)) unit
+        unpack14 := comp (pair (take unpack13) (drop unpack13)) unit
+        unpack15 := comp (pair (take unpack14) (drop unpack14)) unit
+        wit := witness
+        main := comp wit unpack15
+    ";
+    let mut value = Value::unit();
+    for _ in 0..15 {
+        value = Value::prod(value.clone(), value);
     }
+    let witness = HashMap::from([(Arc::from("wit"), value)]);
 
     let test_case = TestBuilder::comment("ok/complex_witness_type_zero_size")
-        .raw_program_cmr(program_complex_witness_type_zero_size())
+        .human_encoding(s, &witness)
         .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
@@ -1260,6 +1243,33 @@ fn main() {
     ";
     let test_case = TestBuilder::comment("exec_budget/sufficient_padding")
         .human_encoding(s, &empty_witness)
+        .expected_error(ScriptError::Ok)
+        .finished();
+    test_cases.push(test_case);
+
+    /*
+     * This program is relatively cheap (116332 WU), but it takes ~1s to run
+     * The expected maximum runtime is 0.06s
+     */
+    fn program_cheap_but_slow() -> (Vec<u8>, Cmr) {
+        let mut unpack = Node::iden();
+        for _ in 0..15 {
+            unpack = Node::comp(&Node::take(&unpack), &Node::drop_(&unpack)).unwrap();
+        }
+        let program = Node::comp(
+            // Leave the witness value empty because
+            // we manually encode the witness block as the empty bitstring
+            &Node::witness(None),
+            &unpack,
+        )
+        .unwrap();
+        let bytes = BitWriter::vec(|w| util::encode_program_empty_witness(&program, w));
+
+        (bytes, program.cmr())
+    }
+
+    let test_case = TestBuilder::comment("ok/cheap_but_slow")
+        .raw_program_cmr(program_cheap_but_slow())
         .expected_error(ScriptError::Ok)
         .finished();
     test_cases.push(test_case);
