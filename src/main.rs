@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use simplicity::jet::Elements;
 use simplicity::node::{CoreConstructible, WitnessConstructible};
-use simplicity::{BitWriter, Cmr, FailEntropy, RedeemNode, Value, WitnessNode};
+use simplicity::{Cmr, FailEntropy, RedeemNode, Value, WitnessNode};
 
 use crate::bit_encoding::BitBuilder;
 use crate::json::ScriptError;
@@ -1263,7 +1263,7 @@ fn main() {
             &unpack,
         )
         .unwrap();
-        let bytes = BitWriter::vec(|w| util::encode_program_empty_witness(&program, w));
+        let bytes = simplicity::write_to_vec(|w| util::encode_program_empty_witness(&program, w));
 
         (bytes, program.cmr())
     }
