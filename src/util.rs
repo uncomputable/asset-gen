@@ -13,8 +13,7 @@ use elements::secp256k1_zkp;
 use elements_miniscript as miniscript;
 use miniscript::{bitcoin, elements};
 use simplicity::jet::Elements;
-use simplicity::node;
-use simplicity::{BitWriter, RedeemNode};
+use simplicity::{BitWriter, RedeemNode, WitnessNode};
 
 /// Nothing-up-my-sleeve point.
 ///
@@ -139,8 +138,11 @@ impl Case {
     }
 }
 
-pub fn encode_program_empty_witness<W: io::Write, N: node::Marker>(
-    program: &node::Node<N>,
+/// **There is no automatic sharing!**
+///
+/// **Expressions must be manually shared using `Arc`!**
+pub fn encode_program_empty_witness<W: io::Write>(
+    program: &WitnessNode<Elements>,
     w: &mut BitWriter<W>,
 ) -> io::Result<usize> {
     let program_bits = simplicity::encode::encode_program(program, w)?;
