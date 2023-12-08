@@ -118,6 +118,7 @@ impl BitBuilder<Program> {
         self.bits_be(0b01000, 5)
     }
 
+    #[allow(dead_code)]
     pub fn injl(self, left_offset: usize) -> Self {
         self.bits_be(0b00100, 5).positive_integer(left_offset)
     }
