@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-simplicity = { git = "https://github.com/BlockstreamResearch/rust-simplicity", branch = "master", features = ["serde"] }
-elements-miniscript = { git = "https://github.com/uncomputable/elements-miniscript", branch = "asset-gen2", features = ["serde"] }
+simplicity-lang = { version = "0.2", features = ["serde"] }
+elements-miniscript = { version = "0.3.1", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

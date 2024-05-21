@@ -98,7 +98,11 @@ pub fn program_from_string(
     witness: &HashMap<Arc<str>, Arc<simplicity::Value>>,
 ) -> Arc<RedeemNode<Elements>> {
     let forest = simplicity::human_encoding::Forest::parse(s).unwrap();
-    forest.to_witness_node(witness).finalize().unwrap()
+    forest
+        .to_witness_node(witness)
+        .expect("has main")
+        .finalize()
+        .expect("well-typed and sufficient witness")
 }
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
