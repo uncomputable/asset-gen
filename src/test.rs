@@ -165,6 +165,16 @@ impl TestBuilder<Bytes, Cmr, Error> {
             }
         }
 
+        let mut sink = std::io::sink();
+        let budget = elements::encode::Encodable::consensus_encode(&witness, &mut sink).unwrap();
+        let budget = u32::try_from(budget).expect("too many bytes");
+        let milliseconds_per_wu = 0.5 / 1_000.0;
+        let max_milliseconds = f64::from(budget) * milliseconds_per_wu;
+        println!(
+            "Budget = {} WU. Should take less than {:.3}ms",
+            budget, max_milliseconds
+        );
+
         let parameters = Parameters::taproot(witness, error);
         let (success, failure) = match error {
             None => (Some(parameters), None),
